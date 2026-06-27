@@ -302,7 +302,7 @@ App.pluginRegistry = {'4xAKTrabTpTzahoLthkwPNUn': 'plugins/explore.js',
 	'tr': 'plugins/trello.js', 'f5': 'plugins/rackF5.js',
 	'webcola': 'plugins/webcola/webcola.js', 'rnd': 'plugins/random.js',
 	'page': 'plugins/page.js', 'gd': 'plugins/googledrive.js',
-	'tags': 'plugins/tags.js'};
+	'tags': 'plugins/tags.js', 'linter': 'plugins/linter/linter.js'};
 
 App.publicPlugin = [
 	'ex',
@@ -320,7 +320,8 @@ App.publicPlugin = [
 	'anon',
 	'webcola',
 //	'rnd', 'page', 'gd',
-	'tags'
+	'tags',
+	'linter'
 ];
 
 /**
