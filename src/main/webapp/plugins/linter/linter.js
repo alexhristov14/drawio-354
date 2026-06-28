@@ -33,6 +33,57 @@ var cancelLinterSettings = function() {
 
 var LinterWindow = function(editorUi, x, y, w, h)
 {
+	/**
+	 * Create setting row with label, warning and error radio buttons, and optional input field
+	 */
+	const createSettingRow = function(labelResource, name, inputType, inputValue) {
+			const row = document.createElement('div');
+			row.className = 'geDialogInlineFields';
+
+			const label = document.createElement('span');
+			mxUtils.write(label, mxResources.get(labelResource) + ':');
+			row.appendChild(label);
+
+			const warningField = document.createElement('div');
+			warningField.className = 'geDialogInlineField';
+
+			const warningLabel = document.createElement('span');
+			mxUtils.write(warningLabel, mxResources.get('warning') + ':');
+			warningField.appendChild(warningLabel);
+
+			const warning = document.createElement('input');
+			warning.setAttribute('type', 'radio');
+			warning.setAttribute('value', 'warning');
+			warning.setAttribute('name', name);
+			warningField.appendChild(warning);
+
+			const errorField = document.createElement('div');
+			errorField.className = 'geDialogInlineField';
+
+			const errorLabel = document.createElement('span');
+			mxUtils.write(errorLabel, mxResources.get('error') + ':');
+			errorField.appendChild(errorLabel);
+
+			const error = document.createElement('input');
+			error.setAttribute('type', 'radio');
+			error.setAttribute('value', 'error');
+			error.setAttribute('name', name);
+			errorField.appendChild(error);
+
+			const inputField = document.createElement('div');
+			inputField.className = 'geDialogInlineField';
+			if (inputType != null && inputValue != null) {
+				const input = document.createElement('input');
+				input.setAttribute('type', inputType);
+				input.setAttribute('value', inputValue);
+				inputField.appendChild(input);
+			}
+
+			row.append(warningField, errorField, inputField);
+			return row;
+	}
+
+
 	const div = document.createElement('div');
 	div.style.position = 'absolute';
 	div.style.width = '100%';
@@ -41,21 +92,10 @@ var LinterWindow = function(editorUi, x, y, w, h)
 
 	const settingsSection = document.createElement('div');
 	settingsSection.className = 'geDialogSection';
+	settingsSection.appendChild(createSettingRow('overlappingShapes', 'geLinterOverlappingShapes'));
+	settingsSection.appendChild(createSettingRow('unconnectedEdges', 'geLinterUnconnectedEdges'));
+	settingsSection.appendChild(createSettingRow('maxLength', 'geLinterMaxLength', 'number', '100'));
 	div.append(settingsSection);
-
-	const row = document.createElement('div');
-	row.className = 'geDialogFormRow';
-
-	const label = document.createElement('span');
-	label.className = 'geDialogFormLabel';
-	mxUtils.write(label, mxResources.get('zoom') + ':');
-	row.appendChild(label);
-
-	const input = document.createElement('input');
-	input.setAttribute('type', 'text');
-	row.appendChild(input);
-
-	settingsSection.appendChild(row);
 
 	const logSection = document.createElement('div');
 	logSection.className = 'geDialogSection';
@@ -80,7 +120,7 @@ var initLinterWindow = function(ui) {
 		var ox = (saved != null && saved.x != null) ? saved.x :
 			document.body.offsetWidth - 240;
 		var oy = (saved != null && saved.y != null) ? saved.y : 100;
-		var ow = (saved != null && saved.w != null) ? saved.w : 180;
+		var ow = (saved != null && saved.w != null) ? saved.w : 240;
 		var oh = (saved != null && saved.h != null) ? saved.h : 180;
 		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
 
