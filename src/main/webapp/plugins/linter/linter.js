@@ -19,22 +19,46 @@ Draw.loadPlugin(function (ui) {
 	};
 });
 
+const defaultLinterSettings = {
+	overlappingShapes: {
+		level: 'warning'
+	},
+	unconnectedEdges: {
+		level: 'warning'
+	},
+	maxLength: {
+		level: 'warning',
+		inputType: 'number',
+		value: 100
+	}
+};
+
+const cloneLinterSettings = function (settings) {
+	return JSON.parse(JSON.stringify(settings));
+};
+
+const getLinterSettings = function () {
+	if (mxSettings.settings.linter == null) {
+		mxSettings.settings.linter = cloneLinterSettings(defaultLinterSettings);
+	}
+	return mxSettings.settings.linter;
+};
+
 const saveLinterSettings = function (settings) {
-	// TODO
-	EditorUi.debug('Saving linter settings: ' + JSON.stringify(settings));
-}
+	mxSettings.settings.linter = cloneLinterSettings(settings);
+	mxSettings.save();
+};
 
-const cancelLinterSettings = function () {
-	// TODO
+const cancelLinterSettings = function (ui) {
 	EditorUi.debug('Cancelling linter settings');
-}
-
+};
 
 var LinterWindow = function (editorUi, x, y, w, h) {
+	const settings = cloneLinterSettings(getLinterSettings());
 	/**
 	 * Create setting row with label, warning and error radio buttons, and optional input field
 	 */
-	function createSettingRow(labelResource, name, inputType, inputValue) {
+	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
 
 		// Setting name
@@ -53,6 +77,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		warning.type = 'radio';
 		warning.name = name;
 		warning.value = 'warning';
+		warning.checked = setting.level === 'warning';
 
 		td.appendChild(warning);
 		row.appendChild(td);
@@ -65,6 +90,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		error.type = 'radio';
 		error.name = name;
 		error.value = 'error';
+		error.checked = setting.level === 'error';
 
 		td.appendChild(error);
 		row.appendChild(td);
@@ -73,10 +99,10 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
 
-		if (inputType != null) {
+		if (setting.inputType != null) {
 			const input = document.createElement('input');
-			input.type = inputType;
-			input.value = inputValue || '';
+			input.type = setting.inputType;
+			input.value = setting.value || '';
 			input.style.width = '60px';
 
 			td.appendChild(input);
@@ -126,22 +152,11 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	tbody.appendChild(header);
 
-	tbody.appendChild(createSettingRow(
-		'overlappingShapes',
-		'geLinterOverlappingShapes'
-	));
-
-	tbody.appendChild(createSettingRow(
-		'unconnectedEdges',
-		'geLinterUnconnectedEdges'
-	));
-
-	tbody.appendChild(createSettingRow(
-		'maxLength',
-		'geLinterMaxLength',
-		'number',
-		100
-	));
+	Object.keys(settings).map(function (key) {
+		const setting = settings[key];
+		const row = createSettingRow(key, 'ge' + key, setting);
+		tbody.appendChild(row);
+	});
 
 	content.appendChild(table);
 
@@ -158,7 +173,20 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.style.display = 'flex';
 	footer.style.alignItems = 'center';
 
+	const addLink = document.createElement('a');
+	addLink.className = 'geButton';
+	addLink.style.backgroundImage = 'url(' + Editor.plusImage + ')';
+	addLink.setAttribute('title', mxResources.get('save'));
+	footer.appendChild(addLink);
+
+	mxEvent.addListener(addLink, 'click', function (event) {
+		saveLinterSettings(settings);
+		mxEvent.consume(event);
+	});
+
+
 	div.appendChild(footer);
+	
 	const minimizable = true;
 	const movable = true;
 
