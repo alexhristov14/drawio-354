@@ -1,8 +1,8 @@
 /**
  * Linter plugin
  */
-Draw.loadPlugin(function(ui) {
-  mxResources.parse('linter=Linter');
+Draw.loadPlugin(function (ui) {
+	mxResources.parse('linter=Linter');
 
 	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
 	// buttonsContent, hideCancel, cancelButtonText, hideAfterOKFn, customButtons,
@@ -12,95 +12,153 @@ Draw.loadPlugin(function(ui) {
 
 	const menu = ui.menus.get('extras');
 	const oldFunct = menu.funct;
-	menu.funct = function(menu, parent)
-	{
+	menu.funct = function (menu, parent) {
 		oldFunct.apply(this, arguments);
 
 		ui.menus.addMenuItems(menu, ['-', 'linter'], parent);
 	};
 });
 
-var saveLinterSettings = function(settings) {
+const saveLinterSettings = function (settings) {
 	// TODO
 	EditorUi.debug('Saving linter settings: ' + JSON.stringify(settings));
 }
 
-var cancelLinterSettings = function() {
+const cancelLinterSettings = function () {
 	// TODO
 	EditorUi.debug('Cancelling linter settings');
 }
 
 
-var LinterWindow = function(editorUi, x, y, w, h)
-{
+var LinterWindow = function (editorUi, x, y, w, h) {
 	/**
 	 * Create setting row with label, warning and error radio buttons, and optional input field
 	 */
-	const createSettingRow = function(labelResource, name, inputType, inputValue) {
-			const row = document.createElement('div');
-			row.className = 'geDialogInlineFields';
+	function createSettingRow(labelResource, name, inputType, inputValue) {
+		const row = document.createElement('tr');
 
-			const label = document.createElement('span');
-			mxUtils.write(label, mxResources.get(labelResource) + ':');
-			row.appendChild(label);
+		// Setting name
+		let td = document.createElement('td');
+		td.style.verticalAlign = 'middle';
+		td.style.padding = '4px 8px';
+		td.style.whiteSpace = 'nowrap';
+		mxUtils.write(td, mxResources.get(labelResource));
+		row.appendChild(td);
 
-			const warningField = document.createElement('div');
-			warningField.className = 'geDialogInlineField';
+		// Warning
+		td = document.createElement('td');
+		td.style.textAlign = 'center';
 
-			const warningLabel = document.createElement('span');
-			mxUtils.write(warningLabel, mxResources.get('warning') + ':');
-			warningField.appendChild(warningLabel);
+		const warning = document.createElement('input');
+		warning.type = 'radio';
+		warning.name = name;
+		warning.value = 'warning';
 
-			const warning = document.createElement('input');
-			warning.setAttribute('type', 'radio');
-			warning.setAttribute('value', 'warning');
-			warning.setAttribute('name', name);
-			warningField.appendChild(warning);
+		td.appendChild(warning);
+		row.appendChild(td);
 
-			const errorField = document.createElement('div');
-			errorField.className = 'geDialogInlineField';
+		// Error
+		td = document.createElement('td');
+		td.style.textAlign = 'center';
 
-			const errorLabel = document.createElement('span');
-			mxUtils.write(errorLabel, mxResources.get('error') + ':');
-			errorField.appendChild(errorLabel);
+		const error = document.createElement('input');
+		error.type = 'radio';
+		error.name = name;
+		error.value = 'error';
 
-			const error = document.createElement('input');
-			error.setAttribute('type', 'radio');
-			error.setAttribute('value', 'error');
-			error.setAttribute('name', name);
-			errorField.appendChild(error);
+		td.appendChild(error);
+		row.appendChild(td);
 
-			const inputField = document.createElement('div');
-			inputField.className = 'geDialogInlineField';
-			if (inputType != null && inputValue != null) {
-				const input = document.createElement('input');
-				input.setAttribute('type', inputType);
-				input.setAttribute('value', inputValue);
-				inputField.appendChild(input);
-			}
 
-			row.append(warningField, errorField, inputField);
-			return row;
+		td = document.createElement('td');
+		td.style.textAlign = 'center';
+
+		if (inputType != null) {
+			const input = document.createElement('input');
+			input.type = inputType;
+			input.value = inputValue || '';
+			input.style.width = '60px';
+
+			td.appendChild(input);
+		}
+
+		row.appendChild(td);
+
+		return row;
 	}
 
-
 	const div = document.createElement('div');
-	div.style.position = 'absolute';
-	div.style.width = '100%';
-	div.style.height = '100%';
+	div.style.userSelect = 'none';
 	div.style.overflow = 'hidden';
+	div.style.padding = '10px';
+	div.style.height = '100%';
 
-	const settingsSection = document.createElement('div');
-	settingsSection.className = 'geDialogSection';
-	settingsSection.appendChild(createSettingRow('overlappingShapes', 'geLinterOverlappingShapes'));
-	settingsSection.appendChild(createSettingRow('unconnectedEdges', 'geLinterUnconnectedEdges'));
-	settingsSection.appendChild(createSettingRow('maxLength', 'geLinterMaxLength', 'number', '100'));
-	div.append(settingsSection);
+	const content = document.createElement('div');
+	content.style.position = 'absolute';
+	content.style.left = '0px';
+	content.style.right = '0px';
+	content.style.top = '0px';
+	content.style.bottom = '32px';
+	content.style.overflow = 'auto';
+	content.style.padding = '10px';
+	content.style.boxSizing = 'border-box';
 
-	const logSection = document.createElement('div');
-	logSection.className = 'geDialogSection';
-	div.append(logSection);
+	div.appendChild(content);
 
+	const table = document.createElement('table');
+	table.style.width = '100%';
+	table.style.tableLayout = 'fixed';
+	table.setAttribute('cellpadding', '2');
+
+	const tbody = document.createElement('tbody');
+	table.appendChild(tbody);
+
+	// Header
+	const header = document.createElement('tr');
+
+	['Setting', 'Warning', 'Error', 'Value'].forEach(function (text) {
+		const th = document.createElement('th');
+		th.style.textAlign = 'left';
+		th.style.padding = '4px 8px';
+		mxUtils.write(th, mxResources.get(text.toLowerCase()) || text);
+		header.appendChild(th);
+	});
+
+	tbody.appendChild(header);
+
+	tbody.appendChild(createSettingRow(
+		'overlappingShapes',
+		'geLinterOverlappingShapes'
+	));
+
+	tbody.appendChild(createSettingRow(
+		'unconnectedEdges',
+		'geLinterUnconnectedEdges'
+	));
+
+	tbody.appendChild(createSettingRow(
+		'maxLength',
+		'geLinterMaxLength',
+		'number',
+		100
+	));
+
+	content.appendChild(table);
+
+	const footer = document.createElement('div');
+	footer.className = 'geToolbarContainer geDialogToolbar';
+	footer.style.position = 'absolute';
+	footer.style.left = '0px';
+	footer.style.right = '0px';
+	footer.style.bottom = '0px';
+	footer.style.height = '32px';
+	footer.style.padding = '3px 4px 4px 4px';
+	footer.style.borderWidth = '1px 0 0 0';
+	footer.style.borderStyle = 'solid';
+	footer.style.display = 'flex';
+	footer.style.alignItems = 'center';
+
+	div.appendChild(footer);
 	const minimizable = true;
 	const movable = true;
 
@@ -112,23 +170,20 @@ var LinterWindow = function(editorUi, x, y, w, h)
 	this.window.setVisible(true);
 };
 
-var initLinterWindow = function(ui) {
+var initLinterWindow = function (ui) {
 	if (ui.linterWindow == null) {
 		var saved = (ui.installWindowPersistence != null) ?
 			mxSettings.getWindowState('linter') : null;
-		// 20px less than outlineWindow
 		var ox = (saved != null && saved.x != null) ? saved.x :
-			document.body.offsetWidth - 240;
+			document.body.offsetWidth - 300;
 		var oy = (saved != null && saved.y != null) ? saved.y : 100;
-		var ow = (saved != null && saved.w != null) ? saved.w : 240;
+		var ow = (saved != null && saved.w != null) ? saved.w : 400;
 		var oh = (saved != null && saved.h != null) ? saved.h : 180;
 		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
 
-		if (ui.installWindowPersistence != null)
-		{
+		if (ui.installWindowPersistence != null) {
 			ui.installWindowPersistence('linter', ui.linterWindow);
-			if (saved != null)
-			{
+			if (saved != null) {
 				ui.restoreWindowState('linter', ui.linterWindow);
 			}
 		}
@@ -136,85 +191,3 @@ var initLinterWindow = function(ui) {
 		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
 	}
 }
-
-	// // Sidebar is null in lightbox
-	// if (ui.sidebar != null)
-	// {
-	//     // Adds custom sidebar entry
-	//     ui.sidebar.addPalette('esolia', 'eSolia', true, function(content) {
-	
-	//         // content.appendChild(ui.sidebar.createVertexTemplate(null, 120, 60));
-	//         content.appendChild(ui.sidebar.createVertexTemplate('shape=image;image=http://download.esolia.net.s3.amazonaws.com/img/eSolia-Logo-Color.svg;resizable=0;movable=0;rotatable=0', 100, 100));
-	//         content.appendChild(ui.sidebar.createVertexTemplate('text;spacingTop=-5;fontFamily=Courier New;fontSize=8;fontColor=#999999;resizable=0;movable=0;rotatable=0', 100, 100));
-	//         content.appendChild(ui.sidebar.createVertexTemplate('rounded=1;whiteSpace=wrap;gradientColor=none;fillColor=#004C99;shadow=1;strokeColor=#FFFFFF;align=center;fontColor=#FFFFFF;strokeWidth=3;fontFamily=Courier New;verticalAlign=middle', 100, 100));
-	//         content.appendChild(ui.sidebar.createVertexTemplate('curved=1;strokeColor=#004C99;endArrow=oval;endFill=0;strokeWidth=3;shadow=1;dashed=1', 100, 100));
-	//     });
-	
-	//     // Collapses default sidebar entry and inserts this before
-	//     var c = ui.sidebar.container;
-	//     c.firstChild.click();
-	//     c.insertBefore(c.lastChild, c.firstChild);
-	//     c.insertBefore(c.lastChild, c.firstChild);
-	
-	//     // Adds logo to footer
-	//     ui.footerContainer.innerHTML = '<img width=50px height=17px align="right" style="margin-top:14px;margin-right:12px;" ' + 'src="http://download.esolia.net.s3.amazonaws.com/img/eSolia-Logo-Color.svg"/>';
-		
-	// 	// Adds placeholder for %today% and %filename%
-	//     var graph = ui.editor.graph;
-	// 	var graphGetGlobalVariable = graph.getGlobalVariable;
-		
-	// 	graph.getGlobalVariable = function(name)
-	// 	{
-	// 		if (name == 'today')
-	// 		{
-	// 			return new Date().toLocaleString();
-	// 		}
-	// 		else if (name == 'filename')
-	// 		{
-	// 			var file = ui.getCurrentFile();
-				
-	// 			return (file != null && file.getTitle() != null) ? file.getTitle() : '';
-	// 		}
-			
-	// 		return graphGetGlobalVariable.apply(this, arguments);
-	// 	};
-		
-	// 	// Adds support for exporting PDF with placeholders
-	// 	var graphGetExportVariables = graph.getExportVariables;
-		
-	// 	Graph.prototype.getExportVariables = function()
-	// 	{
-	// 		var vars = graphGetExportVariables.apply(this, arguments);
-	// 		var file = ui.getCurrentFile();
-			
-	// 		vars['today'] = new Date().toLocaleString();
-	// 		vars['filename'] = (file != null && file.getTitle() != null) ? file.getTitle() : '';
-			
-	// 		return vars;
-	// 	};
-	
-//	    // Adds resource for action
-//	    mxResources.parse('helloWorldAction=Hello, World!');
-//	
-//	    // Adds action
-//	    ui.actions.addAction('helloWorldAction', function() {
-//	        var ran = Math.floor((Math.random() * 100) + 1);
-//	        mxUtils.alert('A random number is ' + ran);
-//	    });
-//	
-//	    // Adds menu
-//	    ui.menubar.addMenu('Hello, World Menu', function(menu, parent) {
-//	        ui.menus.addMenuItem(menu, 'helloWorldAction');
-//	    });
-//	
-//	    // Reorders menubar
-//	    ui.menubar.container.insertBefore(ui.menubar.container.lastChild,
-//	        ui.menubar.container.lastChild.previousSibling.previousSibling);
-//	
-//	    // Adds toolbar button
-//	    ui.toolbar.addSeparator();
-//	    var elt = ui.toolbar.addItem('', 'helloWorldAction');
-//	
-//	    // Cannot use built-in sprites
-//	    elt.firstChild.style.backgroundImage = 'url(https://www.draw.io/images/logo-small.gif)';
-//	    elt.firstChild.style.backgroundPosition = '2px 3px';
