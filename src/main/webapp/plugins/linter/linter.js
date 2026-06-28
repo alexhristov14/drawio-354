@@ -1,16 +1,102 @@
 /**
  * Linter plugin
  */
-Draw.loadPlugin(function(editorUi) {
-	editorUi.Debug('linter plugin loaded');
-  const container = document.createElement('div');
+Draw.loadPlugin(function(ui) {
   mxResources.parse('linter=Linter');
-  var dialog = new CustomDialog(editorUi, container, mxUtils.bind(this, function() {
-    console.log('ok function called');
-  }), null, mxResources.get('linter'));
-	
-  editorUi.showDialog(dialog.container, 360, null, true, true);
+
+	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
+	// buttonsContent, hideCancel, cancelButtonText, hideAfterOKFn, customButtons,
+	// marginTop)
+	// EditorUi.prototype.showDialog = function(elt, w, h, modal, closable, onClose, noScroll, transparent, minSize, ignoreBgClick, persistenceKey)
+	ui.actions.addAction('linter', () => initLinterWindow(ui));
+
+	const menu = ui.menus.get('extras');
+	const oldFunct = menu.funct;
+	menu.funct = function(menu, parent)
+	{
+		oldFunct.apply(this, arguments);
+
+		ui.menus.addMenuItems(menu, ['-', 'linter'], parent);
+	};
 });
+
+var saveLinterSettings = function(settings) {
+	// TODO
+	EditorUi.debug('Saving linter settings: ' + JSON.stringify(settings));
+}
+
+var cancelLinterSettings = function() {
+	// TODO
+	EditorUi.debug('Cancelling linter settings');
+}
+
+
+var LinterWindow = function(editorUi, x, y, w, h)
+{
+	const div = document.createElement('div');
+	div.style.position = 'absolute';
+	div.style.width = '100%';
+	div.style.height = '100%';
+	div.style.overflow = 'hidden';
+
+	const settingsSection = document.createElement('div');
+	settingsSection.className = 'geDialogSection';
+	div.append(settingsSection);
+
+	const row = document.createElement('div');
+	row.className = 'geDialogFormRow';
+
+	const label = document.createElement('span');
+	label.className = 'geDialogFormLabel';
+	mxUtils.write(label, mxResources.get('zoom') + ':');
+	row.appendChild(label);
+
+	const input = document.createElement('input');
+	input.setAttribute('type', 'text');
+	row.appendChild(input);
+
+	settingsSection.appendChild(row);
+
+	const logSection = document.createElement('div');
+	logSection.className = 'geDialogSection';
+	div.append(logSection);
+
+	const minimizable = true;
+	const movable = true;
+
+	this.window = new mxWindow(mxResources.get('linter'), div, x, y, w, h, minimizable, movable);
+	this.window.destroyOnClose = false;
+	this.window.setMaximizable(false);
+	this.window.setResizable(true);
+	this.window.setClosable(true);
+	this.window.setVisible(true);
+};
+
+var initLinterWindow = function(ui) {
+	if (ui.linterWindow == null) {
+		var saved = (ui.installWindowPersistence != null) ?
+			mxSettings.getWindowState('linter') : null;
+		// 20px less than outlineWindow
+		var ox = (saved != null && saved.x != null) ? saved.x :
+			document.body.offsetWidth - 240;
+		var oy = (saved != null && saved.y != null) ? saved.y : 100;
+		var ow = (saved != null && saved.w != null) ? saved.w : 180;
+		var oh = (saved != null && saved.h != null) ? saved.h : 180;
+		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
+
+		if (ui.installWindowPersistence != null)
+		{
+			ui.installWindowPersistence('linter', ui.linterWindow);
+			if (saved != null)
+			{
+				ui.restoreWindowState('linter', ui.linterWindow);
+			}
+		}
+	} else {
+		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
+	}
+}
+
 	// // Sidebar is null in lightbox
 	// if (ui.sidebar != null)
 	// {
