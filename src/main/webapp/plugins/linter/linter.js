@@ -54,7 +54,8 @@ const cancelLinterSettings = function (ui) {
 };
 
 var LinterWindow = function (editorUi, x, y, w, h) {
-	const settings = cloneLinterSettings(getLinterSettings());
+	this.settings = cloneLinterSettings(getLinterSettings());
+	const self = this;
 	/**
 	 * Create setting row with label, warning and error radio buttons, and optional input field
 	 */
@@ -164,8 +165,8 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	tbody.appendChild(header);
 
-	Object.keys(settings).map(function (key) {
-		const setting = settings[key];
+	Object.keys(self.settings).map(function (key) {
+		const setting = self.settings[key];
 		const row = createSettingRow(key, 'ge' + key, setting);
 		tbody.appendChild(row);
 	});
@@ -192,7 +193,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.appendChild(addLink);
 
 	mxEvent.addListener(addLink, 'click', function (event) {
-		saveLinterSettings(settings);
+		saveLinterSettings(self.settings);
 		mxEvent.consume(event);
 	});
 
