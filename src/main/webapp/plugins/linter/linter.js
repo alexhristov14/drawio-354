@@ -69,6 +69,14 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		mxUtils.write(td, mxResources.get(labelResource));
 		row.appendChild(td);
 
+		function updateLevel() {
+			if (warning.checked) {
+				setting.level = 'warning';
+			} else if (error.checked) {
+				setting.level = 'error';
+			}
+		}
+
 		// Warning
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
@@ -95,6 +103,8 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		td.appendChild(error);
 		row.appendChild(td);
 
+		mxEvent.addListener(warning, 'change', updateLevel);
+		mxEvent.addListener(error, 'change', updateLevel);
 
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
@@ -104,7 +114,9 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 			input.type = setting.inputType;
 			input.value = setting.value || '';
 			input.style.width = '60px';
-
+			mxEvent.addListener(input, 'change', function () {
+				setting.value = input.value;
+			});
 			td.appendChild(input);
 		}
 
@@ -186,7 +198,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 
 	div.appendChild(footer);
-	
+
 	const minimizable = true;
 	const movable = true;
 
