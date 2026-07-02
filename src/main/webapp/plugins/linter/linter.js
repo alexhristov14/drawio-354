@@ -2,6 +2,9 @@
  * Linter plugin
  */
 Draw.loadPlugin(function (ui) {
+	//Load the file responsible for unconnected Arrow detection logic
+	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
+
 	mxResources.parse('linter=Linter');
 
 	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
@@ -212,6 +215,9 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
+	var unconnectedArrows = new unconnectedArrowsHelper(ui)
+	unconnectedArrows.detectUnconnectedArrows()
+
 	if (ui.linterWindow == null) {
 		var saved = (ui.installWindowPersistence != null) ?
 			mxSettings.getWindowState('linter') : null;
