@@ -1,14 +1,11 @@
 //Structure inspired from the webcola plugin
-function unconnectedArrowsHelper(ui){
+function detectUnconnectedArrows(ui){
   //We need it
   this.graph = ui.editor.graph
-  //In case we need it
-  this.model = this.graph.model
   //We need it
-  this.cells = this.model.cells
-}
-unconnectedArrowsHelper.prototype.detectUnconnectedArrows = function(){
-  // console.log(this.cells)
+  this.cells = this.graph.model.cells
+  console.log(this.cells)
+  
   Object.values(this.cells).forEach(value => {
     //If it is an arrow/connection
     if(value.edge){
@@ -27,10 +24,15 @@ unconnectedArrowsHelper.prototype.detectUnconnectedArrows = function(){
 
       //If both connections already exist
       } else {
+        //Remove oldColor
         if(value.oldColor){
           this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value])
           //Remove the unneeded property
           delete value.oldColor
+        }
+        //Remove message
+        if(value.message){
+          delete value.message
         }
       }
     }

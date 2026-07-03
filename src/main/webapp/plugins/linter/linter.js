@@ -215,8 +215,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
-	var unconnectedArrows = new unconnectedArrowsHelper(ui)
-	unconnectedArrows.detectUnconnectedArrows()
+	detectUnconnectedArrows(ui)
 
 	if (ui.linterWindow == null) {
 		var saved = (ui.installWindowPersistence != null) ?
