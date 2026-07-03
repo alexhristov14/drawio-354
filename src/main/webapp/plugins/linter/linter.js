@@ -2,6 +2,9 @@
  * Linter plugin
  */
 Draw.loadPlugin(function (ui) {
+	//Load the file responsible for overlapping shape detection logic
+	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
+
 	mxResources.parse('linter=Linter');
 
 	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
@@ -212,6 +215,9 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
+	var overlapping = new overlappingShapesHelper(ui)
+	overlapping.detectOverlappingShapes()
+
 	if (ui.linterWindow == null) {
 		var saved = (ui.installWindowPersistence != null) ?
 			mxSettings.getWindowState('linter') : null;
