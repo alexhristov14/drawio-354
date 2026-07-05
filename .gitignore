@@ -4,6 +4,8 @@ build
 classes
 node_modules
 .vscode/settings.json
+.vscode/launch.json
+jsconfig.json
 src/main/webapp/WEB-INF/lib/animal-sniffer-annotations-*.jar
 src/main/webapp/WEB-INF/lib/annotations-*.jar
 src/main/webapp/WEB-INF/lib/api-common-*.jar
