@@ -1,37 +1,40 @@
 /**
  * Linter plugin
  */
+
+mxscript('plugins/linter/userRules.js', null, null, null, true);
+
 Draw.loadPlugin(function (ui) {
 	//Load the file responsible for overlapping shape detection logic
 	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
 	//Load the file responsible for unconnected Arrow detection logic
 	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
-
 	mxResources.parse('linter=Linter');
 
-	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
-	// buttonsContent, hideCancel, cancelButtonText, hideAfterOKFn, customButtons,
-	// marginTop)
-	// EditorUi.prototype.showDialog = function(elt, w, h, modal, closable, onClose, noScroll, transparent, minSize, ignoreBgClick, persistenceKey)
-	ui.actions.addAction('linter', () => initLinterWindow(ui));
+	ui.actions.addAction('linter', function () {
+		initLinterWindow(ui);
+	});
 
 	const menu = ui.menus.get('extras');
 	const oldFunct = menu.funct;
+
 	menu.funct = function (menu, parent) {
 		oldFunct.apply(this, arguments);
-
 		ui.menus.addMenuItems(menu, ['-', 'linter'], parent);
 	};
 });
 
 const defaultLinterSettings = {
 	overlappingShapes: {
+		enabled: true,
 		level: 'warning'
 	},
 	unconnectedEdges: {
+		enabled: true,
 		level: 'warning'
 	},
 	maxLength: {
+		enabled: true,
 		level: 'warning',
 		inputType: 'number',
 		value: 100
@@ -42,27 +45,122 @@ const cloneLinterSettings = function (settings) {
 	return JSON.parse(JSON.stringify(settings));
 };
 
-const getLinterSettings = function () {
-	if (mxSettings.settings.linter == null) {
-		mxSettings.settings.linter = cloneLinterSettings(defaultLinterSettings);
+const mergeLinterSettings = function (settings) {
+	const mergedSettings = cloneLinterSettings(defaultLinterSettings);
+
+	if (settings == null || typeof settings !== 'object') {
+		return mergedSettings;
 	}
-	return mxSettings.settings.linter;
+
+	Object.keys(mergedSettings).forEach(function (key) {
+		if (settings[key] != null && typeof settings[key] === 'object') {
+			Object.assign(mergedSettings[key], settings[key]);
+		}
+	});
+
+	return mergedSettings;
+};
+
+const getLinterSettings = function () {
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
+		return mergeLinterSettings(window.LinterUserRules.load());
+	}
+
+	EditorUi.debug('LinterUserRules not loaded. Using default linter settings.');
+
+	return cloneLinterSettings(defaultLinterSettings);
 };
 
 const saveLinterSettings = function (settings) {
-	mxSettings.settings.linter = cloneLinterSettings(settings);
-	mxSettings.save();
+	const normalizedSettings = mergeLinterSettings(settings);
+
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.save === 'function') {
+		window.LinterUserRules.save(normalizedSettings);
+		EditorUi.debug('Linter settings saved.');
+		return normalizedSettings;
+	}
+
+	EditorUi.debug('LinterUserRules not loaded. Could not save linter settings.');
+
+	return normalizedSettings;
 };
 
-const cancelLinterSettings = function (ui) {
+const resetLinterSettings = function () {
+	const resetSettings = cloneLinterSettings(defaultLinterSettings);
+
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.save === 'function') {
+		window.LinterUserRules.save(resetSettings);
+		EditorUi.debug('Linter settings reset to defaults.');
+	}
+
+	return resetSettings;
+};
+
+const exportLinterSettings = function (settings) {
+	const normalizedSettings = mergeLinterSettings(settings);
+	const json = JSON.stringify(normalizedSettings, null, 2);
+
+	const blob = new Blob([json], {
+		type: 'application/json'
+	});
+
+	const url = URL.createObjectURL(blob);
+
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = 'drawio-linter-rules.json';
+	link.click();
+
+	setTimeout(function () {
+		URL.revokeObjectURL(url);
+	}, 0);
+
+	EditorUi.debug('Linter settings exported.');
+};
+
+const importLinterSettingsFromText = function (jsonText) {
+	try {
+		const importedSettings = JSON.parse(jsonText);
+		const normalizedSettings = mergeLinterSettings(importedSettings);
+
+		saveLinterSettings(normalizedSettings);
+
+		EditorUi.debug('Linter settings imported.');
+
+		return normalizedSettings;
+	} catch (e) {
+		EditorUi.debug('Invalid linter settings JSON. Import failed.');
+		return getLinterSettings();
+	}
+};
+
+const getLabel = function (resourceKey, fallbackText) {
+	const value = mxResources.get(resourceKey);
+
+	return value != null ? value : fallbackText;
+};
+
+const createFooterButton = function (text) {
+	const button = document.createElement('button');
+
+	button.appendChild(document.createTextNode(text));
+	button.style.marginRight = '8px';
+
+	return button;
+};
+
+const cancelLinterSettings = function () {
 	EditorUi.debug('Cancelling linter settings');
 };
 
 var LinterWindow = function (editorUi, x, y, w, h) {
 	this.settings = cloneLinterSettings(getLinterSettings());
+
 	const self = this;
+
 	/**
-	 * Create setting row with label, warning and error radio buttons, and optional input field
+	 * Create setting row with label, enabled checkbox, warning/error radio buttons,
+	 * and optional input field.
 	 */
 	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
@@ -72,8 +170,23 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		td.style.verticalAlign = 'middle';
 		td.style.padding = '4px 8px';
 		td.style.whiteSpace = 'nowrap';
-		mxUtils.write(td, mxResources.get(labelResource));
+		mxUtils.write(td, getLabel(labelResource, labelResource));
 		row.appendChild(td);
+
+		// Enabled
+		td = document.createElement('td');
+		td.style.textAlign = 'center';
+
+		const enabled = document.createElement('input');
+		enabled.type = 'checkbox';
+		enabled.checked = setting.enabled !== false;
+
+		td.appendChild(enabled);
+		row.appendChild(td);
+
+		mxEvent.addListener(enabled, 'change', function () {
+			setting.enabled = enabled.checked;
+		});
 
 		function updateLevel() {
 			if (warning.checked) {
@@ -112,6 +225,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		mxEvent.addListener(warning, 'change', updateLevel);
 		mxEvent.addListener(error, 'change', updateLevel);
 
+		// Value
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
 
@@ -120,9 +234,11 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 			input.type = setting.inputType;
 			input.value = setting.value || '';
 			input.style.width = '60px';
+
 			mxEvent.addListener(input, 'change', function () {
 				setting.value = input.value;
 			});
+
 			td.appendChild(input);
 		}
 
@@ -142,7 +258,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	content.style.left = '0px';
 	content.style.right = '0px';
 	content.style.top = '0px';
-	content.style.bottom = '32px';
+	content.style.bottom = '42px';
 	content.style.overflow = 'auto';
 	content.style.padding = '10px';
 	content.style.boxSizing = 'border-box';
@@ -160,17 +276,17 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	// Header
 	const header = document.createElement('tr');
 
-	['Setting', 'Warning', 'Error', 'Value'].forEach(function (text) {
+	['Setting', 'Enabled', 'Warning', 'Error', 'Value'].forEach(function (text) {
 		const th = document.createElement('th');
 		th.style.textAlign = 'left';
 		th.style.padding = '4px 8px';
-		mxUtils.write(th, mxResources.get(text.toLowerCase()) || text);
+		mxUtils.write(th, getLabel(text.toLowerCase(), text));
 		header.appendChild(th);
 	});
 
 	tbody.appendChild(header);
 
-	Object.keys(self.settings).map(function (key) {
+	Object.keys(self.settings).forEach(function (key) {
 		const setting = self.settings[key];
 		const row = createSettingRow(key, 'ge' + key, setting);
 		tbody.appendChild(row);
@@ -184,24 +300,79 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.style.left = '0px';
 	footer.style.right = '0px';
 	footer.style.bottom = '0px';
-	footer.style.height = '32px';
-	footer.style.padding = '3px 4px 4px 4px';
+	footer.style.height = '42px';
+	footer.style.padding = '6px 8px';
 	footer.style.borderWidth = '1px 0 0 0';
 	footer.style.borderStyle = 'solid';
 	footer.style.display = 'flex';
 	footer.style.alignItems = 'center';
+	footer.style.justifyContent = 'flex-end';
 
-	const addLink = document.createElement('a');
-	addLink.className = 'geButton';
-	addLink.style.backgroundImage = 'url(' + Editor.plusImage + ')';
-	addLink.setAttribute('title', mxResources.get('save'));
-	footer.appendChild(addLink);
+	const importInput = document.createElement('input');
+	importInput.type = 'file';
+	importInput.accept = 'application/json';
+	importInput.style.display = 'none';
 
-	mxEvent.addListener(addLink, 'click', function (event) {
+	mxEvent.addListener(importInput, 'change', function (event) {
+		const file = event.target.files[0];
+
+		if (file == null) {
+			return;
+		}
+
+		const reader = new FileReader();
+
+		reader.onload = function () {
+			self.settings = importLinterSettingsFromText(reader.result);
+
+			if (editorUi.linterWindow != null) {
+				editorUi.linterWindow.window.destroy();
+				editorUi.linterWindow = null;
+			}
+
+			initLinterWindow(editorUi);
+		};
+
+		reader.readAsText(file);
+		importInput.value = '';
+	});
+
+	div.appendChild(importInput);
+
+	const saveButton = createFooterButton('Save');
+	mxEvent.addListener(saveButton, 'click', function (event) {
 		saveLinterSettings(self.settings);
 		mxEvent.consume(event);
 	});
+	footer.appendChild(saveButton);
 
+	const resetButton = createFooterButton('Reset');
+	mxEvent.addListener(resetButton, 'click', function (event) {
+		self.settings = resetLinterSettings();
+
+		if (editorUi.linterWindow != null) {
+			editorUi.linterWindow.window.destroy();
+			editorUi.linterWindow = null;
+		}
+
+		initLinterWindow(editorUi);
+		mxEvent.consume(event);
+	});
+	footer.appendChild(resetButton);
+
+	const exportButton = createFooterButton('Export');
+	mxEvent.addListener(exportButton, 'click', function (event) {
+		exportLinterSettings(self.settings);
+		mxEvent.consume(event);
+	});
+	footer.appendChild(exportButton);
+
+	const importButton = createFooterButton('Import');
+	mxEvent.addListener(importButton, 'click', function (event) {
+		importInput.click();
+		mxEvent.consume(event);
+	});
+	footer.appendChild(importButton);
 
 	div.appendChild(footer);
 
@@ -217,22 +388,39 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
-	var overlapping = new overlappingShapesHelper(ui)
-	overlapping.detectOverlappingShapes()
-	detectUnconnectedArrows(ui)
+	const settings = getLinterSettings();
+
+	if (settings.unconnectedEdges == null || settings.unconnectedEdges.enabled !== false) {
+		if (typeof detectUnconnectedArrows === 'function') {
+			detectUnconnectedArrows(ui);
+		} else {
+			EditorUi.debug('detectUnconnectedArrows is not loaded.');
+		}
+	} else {
+		EditorUi.debug('Skipping unconnected edge detection because the rule is disabled.');
+	}
 
 	if (ui.linterWindow == null) {
-		var saved = (ui.installWindowPersistence != null) ?
+		const saved = ui.installWindowPersistence != null ?
 			mxSettings.getWindowState('linter') : null;
-		var ox = (saved != null && saved.x != null) ? saved.x :
-			document.body.offsetWidth - 300;
-		var oy = (saved != null && saved.y != null) ? saved.y : 100;
-		var ow = (saved != null && saved.w != null) ? saved.w : 400;
-		var oh = (saved != null && saved.h != null) ? saved.h : 180;
-		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
+
+		const ox = saved != null && saved.x != null ?
+			saved.x : document.body.offsetWidth - 420;
+
+		const oy = saved != null && saved.y != null ?
+			saved.y : 100;
+
+		const ow = saved != null && saved.w != null ?
+			saved.w : 520;
+
+		const oh = saved != null && saved.h != null ?
+			saved.h : 220;
+
+		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh);
 
 		if (ui.installWindowPersistence != null) {
 			ui.installWindowPersistence('linter', ui.linterWindow);
+
 			if (saved != null) {
 				ui.restoreWindowState('linter', ui.linterWindow);
 			}
@@ -240,4 +428,4 @@ var initLinterWindow = function (ui) {
 	} else {
 		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
 	}
-}
+};
