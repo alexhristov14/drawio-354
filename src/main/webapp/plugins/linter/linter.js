@@ -2,6 +2,8 @@
  * Linter plugin
  */
 Draw.loadPlugin(function (ui) {
+	//Load the file responsible for overlapping shape detection logic
+	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
 	//Load the file responsible for unconnected Arrow detection logic
 	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
 
@@ -215,6 +217,8 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
+	var overlapping = new overlappingShapesHelper(ui)
+	overlapping.detectOverlappingShapes()
 	detectUnconnectedArrows(ui)
 
 	if (ui.linterWindow == null) {
