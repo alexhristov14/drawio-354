@@ -1,19 +1,11 @@
 // Part 6: Error/Warning state management
 // Structure inspired from unconnectedArrows.js and overlappingShapes.js
-//
-// This file doesn't decide *when* checks run — it only:
-//   1. Runs the existing detectors (they mutate cell.message + stroke color)
-//   2. Scans the model for every cell that ended up with a .message
-//   3. Renders that list as a log
-//   4. Highlights the matching shape when its log entry is hovered
 
-// Reusable highlight so we don't create a new overlay per hover
 var linterHoverHighlight = null;
 
 function getLinterHoverHighlight(ui) {
   if (linterHoverHighlight == null) {
-    // Orange, 4px — reads differently from the red "error" stroke
-    // the detectors already applied, so hover is visibly distinct
+    // the detectors applied, so hover is visibly distinct, orange border
     linterHoverHighlight = new mxCellHighlight(ui.editor.graph, '#FFA500', 4);
   }
   return linterHoverHighlight;
