@@ -29,8 +29,7 @@ function collectLinterMessages(ui) {
   return messages;
 }
 
-// Rebuilds the log's DOM from current state. Safe to call repeatedly —
-// wired to the Run button below.
+// Rebuilds the log's DOM from current state and wires it to the Run button below.
 function refreshLinterLog(ui, logContainer) {
   var graph = ui.editor.graph;
   var messages = collectLinterMessages(ui);
