@@ -128,6 +128,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
+		var input = null;
 
 		let td = document.createElement('td');
 		td.style.verticalAlign = 'middle';
@@ -146,18 +147,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 		td.appendChild(enabled);
 		row.appendChild(td);
-
-		mxEvent.addListener(enabled, 'change', function () {
-			setting.enabled = enabled.checked;
-		});
-
-		function updateLevel() {
-			if (warning.checked) {
-				setting.level = 'warning';
-			} else if (error.checked) {
-				setting.level = 'error';
-			}
-		}
 
 		// Warning
 		td = document.createElement('td');
@@ -193,7 +182,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		td.style.textAlign = 'center';
 
 		if (setting.inputType != null) {
-			const input = document.createElement('input');
+			input = document.createElement('input');
 			input.type = setting.inputType;
 			input.value = setting.value || '';
 			input.style.width = '60px';
@@ -206,6 +195,34 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		}
 
 		row.appendChild(td);
+
+		// Hide the level and value inputs if the rule is disabled
+		mxEvent.addListener(enabled, 'change', function () {
+			setting.enabled = enabled.checked;
+			if(!enabled.checked) {
+				warning.hidden = true;
+				error.hidden = true;
+				if (setting.inputType != null){
+					input.hidden = true;
+				}
+			}else{
+				warning.hidden = false;
+				error.hidden = false;
+				if (setting.inputType != null){
+					input.hidden = false;
+				}
+			}
+		});
+
+		function updateLevel() {
+			if (warning.checked) {
+				setting.level = 'warning';
+			} else if (error.checked) {
+				setting.level = 'error';
+			}
+		}
+
+		
 
 		return row;
 	}
