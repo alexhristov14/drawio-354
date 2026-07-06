@@ -5,10 +5,8 @@
 mxscript('plugins/linter/userRules.js', null, null, null, true);
 
 Draw.loadPlugin(function (ui) {
-	//Load the file responsible for overlapping shape detection logic
-	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
-	//Load the file responsible for unconnected Arrow detection logic
-	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
+	mxscript('plugins/linter/unconnectedArrows.js', null, null, null, true);
+
 	mxResources.parse('linter=Linter');
 
 	ui.actions.addAction('linter', function () {
@@ -24,7 +22,8 @@ Draw.loadPlugin(function (ui) {
 	};
 });
 
-const defaultLinterSettings = {
+
+const fallbackLinterSettings = {
 	overlappingShapes: {
 		enabled: true,
 		level: 'warning'
@@ -41,97 +40,65 @@ const defaultLinterSettings = {
 	}
 };
 
+
 const cloneLinterSettings = function (settings) {
 	return JSON.parse(JSON.stringify(settings));
 };
 
-const mergeLinterSettings = function (settings) {
-	const mergedSettings = cloneLinterSettings(defaultLinterSettings);
-
-	if (settings == null || typeof settings !== 'object') {
-		return mergedSettings;
-	}
-
-	Object.keys(mergedSettings).forEach(function (key) {
-		if (settings[key] != null && typeof settings[key] === 'object') {
-			Object.assign(mergedSettings[key], settings[key]);
-		}
-	});
-
-	return mergedSettings;
-};
-
 const getLinterSettings = function () {
 	if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
-		return mergeLinterSettings(window.LinterUserRules.load());
+		return window.LinterUserRules.load();
 	}
 
-	EditorUi.debug('LinterUserRules not loaded. Using default linter settings.');
+	EditorUi.debug('LinterUserRules not loaded. Using fallback linter settings.');
 
-	return cloneLinterSettings(defaultLinterSettings);
+	return cloneLinterSettings(fallbackLinterSettings);
 };
 
 const saveLinterSettings = function (settings) {
-	const normalizedSettings = mergeLinterSettings(settings);
-
 	if (window.LinterUserRules != null && typeof window.LinterUserRules.save === 'function') {
-		window.LinterUserRules.save(normalizedSettings);
+		const updatedSettings = window.LinterUserRules.save(settings);
 		EditorUi.debug('Linter settings saved.');
-		return normalizedSettings;
+		return updatedSettings;
 	}
 
 	EditorUi.debug('LinterUserRules not loaded. Could not save linter settings.');
 
-	return normalizedSettings;
+	return settings;
 };
 
 const resetLinterSettings = function () {
-	const resetSettings = cloneLinterSettings(defaultLinterSettings);
-
-	if (window.LinterUserRules != null && typeof window.LinterUserRules.save === 'function') {
-		window.LinterUserRules.save(resetSettings);
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.reset === 'function') {
+		const resetSettings = window.LinterUserRules.reset();
 		EditorUi.debug('Linter settings reset to defaults.');
+		return resetSettings;
 	}
 
-	return resetSettings;
+	EditorUi.debug('LinterUserRules not loaded. Could not reset linter settings.');
+
+	return cloneLinterSettings(fallbackLinterSettings);
 };
 
 const exportLinterSettings = function (settings) {
-	const normalizedSettings = mergeLinterSettings(settings);
-	const json = JSON.stringify(normalizedSettings, null, 2);
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.export === 'function') {
+		window.LinterUserRules.export(settings);
+		EditorUi.debug('Linter settings exported.');
+		return;
+	}
 
-	const blob = new Blob([json], {
-		type: 'application/json'
-	});
-
-	const url = URL.createObjectURL(blob);
-
-	const link = document.createElement('a');
-	link.href = url;
-	link.download = 'drawio-linter-rules.json';
-	link.click();
-
-	setTimeout(function () {
-		URL.revokeObjectURL(url);
-	}, 0);
-
-	EditorUi.debug('Linter settings exported.');
+	EditorUi.debug('LinterUserRules not loaded. Could not export linter settings.');
 };
 
 const importLinterSettingsFromText = function (jsonText) {
-	try {
-		const importedSettings = JSON.parse(jsonText);
-		const normalizedSettings = mergeLinterSettings(importedSettings);
-
-		saveLinterSettings(normalizedSettings);
-
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.importFromText === 'function') {
+		const importedSettings = window.LinterUserRules.importFromText(jsonText);
 		EditorUi.debug('Linter settings imported.');
-
-		return normalizedSettings;
-	} catch (e) {
-		EditorUi.debug('Invalid linter settings JSON. Import failed.');
-		return getLinterSettings();
+		return importedSettings;
 	}
+
+	EditorUi.debug('LinterUserRules not loaded. Could not import linter settings.');
+
+	return getLinterSettings();
 };
 
 const getLabel = function (resourceKey, fallbackText) {
@@ -158,14 +125,10 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	const self = this;
 
-	/**
-	 * Create setting row with label, enabled checkbox, warning/error radio buttons,
-	 * and optional input field.
-	 */
+
 	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
 
-		// Setting name
 		let td = document.createElement('td');
 		td.style.verticalAlign = 'middle';
 		td.style.padding = '4px 8px';

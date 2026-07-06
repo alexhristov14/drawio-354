@@ -49,6 +49,26 @@
   }
 
   /**
+   * Deep-merges rule overrides on top of a base rules object.
+   * Only known keys (from baseRules) are kept; each rule's sub-fields
+   * (enabled/level/value) are merged individually so a partial override
+   * like { maxLength: { value: 50 } } doesn't wipe out enabled/level.
+   */
+  function mergeRuleSettings(baseRules, overrides) {
+    var merged = JSON.parse(JSON.stringify(baseRules));
+
+    if (overrides != null && typeof overrides === 'object') {
+      Object.keys(merged).forEach(function (key) {
+        if (overrides[key] != null && typeof overrides[key] === 'object') {
+          Object.assign(merged[key], overrides[key]);
+        }
+      });
+    }
+
+    return merged;
+  }
+
+  /**
    * Loads saved linter rules from localStorage.
    * If there are no saved rules yet, it returns the default settings.
    */
@@ -62,7 +82,7 @@
       }
 
       var parsedRules = JSON.parse(savedRules);
-      var mergedRules = Object.assign(copyDefaultRules(), parsedRules);
+      var mergedRules = mergeRuleSettings(defaultRules, parsedRules);
 
       debug('Linter user rules loaded.');
 
@@ -80,7 +100,7 @@
   function saveUserRules(rules) {
     try {
       var currentRules = loadUserRules();
-      var updatedRules = Object.assign(currentRules, rules);
+      var updatedRules = mergeRuleSettings(currentRules, rules);
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRules));
 
@@ -98,9 +118,12 @@
    * After this, the plugin will use the default settings again.
    */
   function resetUserRules() {
-    localStorage.removeItem(STORAGE_KEY);
-
-    debug('Linter user rules reset to defaults.');
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      debug('Linter user rules reset to defaults.');
+    } catch (e) {
+      debug('Failed to reset linter user rules.');
+    }
 
     return copyDefaultRules();
   }
@@ -109,9 +132,9 @@
    * Exports current linter settings as a JSON file.
    * This lets users back up or share their settings.
    */
-  function exportUserRules() {
-    var rules = loadUserRules();
-    var json = JSON.stringify(rules, null, 2);
+  function exportUserRules(rules) {
+    var rulesToExport = rules || loadUserRules();
+    var json = JSON.stringify(rulesToExport, null, 2);
 
     var blob = new Blob([json], {
       type: 'application/json'
