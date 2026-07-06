@@ -2,11 +2,13 @@
  * Linter plugin
  */
 Draw.loadPlugin(function (ui) {
+	window.debugUi = ui;
 	//Load the file responsible for overlapping shape detection logic
 	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
 	//Load the file responsible for unconnected Arrow detection logic
 	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
-
+	//Load the file responsible for error/warning log management
+	mxscript("plugins/linter/errorWarningLog.js", null, null, null, true)
 	mxResources.parse('linter=Linter');
 
 	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
@@ -178,6 +180,23 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	content.appendChild(table);
 
+	var logTitle = document.createElement('div');
+	logTitle.style.marginTop = '12px';
+	logTitle.style.fontWeight = 'bold';
+	logTitle.style.fontSize = '12px';
+	mxUtils.write(logTitle, 'Errors & Warnings');
+	content.appendChild(logTitle);
+
+	var logContainer = document.createElement('div');
+	logContainer.style.marginTop = '4px';
+	logContainer.style.minHeight = '60px';
+	logContainer.style.maxHeight = '150px';
+	logContainer.style.overflow = 'auto';
+	logContainer.style.border = '1px solid light-dark(#ddd,#505759)';
+	logContainer.style.backgroundColor = 'light-dark(#fafafa,#2a2a2a)';
+	content.appendChild(logContainer);
+	this.logContainer = logContainer;
+
 	const footer = document.createElement('div');
 	footer.className = 'geToolbarContainer geDialogToolbar';
 	footer.style.position = 'absolute';
@@ -199,6 +218,17 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	mxEvent.addListener(addLink, 'click', function (event) {
 		saveLinterSettings(self.settings);
+		mxEvent.consume(event);
+	});
+
+	var runLink = document.createElement('a');
+	runLink.className = 'geButton';
+	runLink.style.marginLeft = '8px';
+	mxUtils.write(runLink, 'Run');
+	footer.appendChild(runLink);
+
+	mxEvent.addListener(runLink, 'click', function (event) {
+		refreshLinterLog(editorUi, self.logContainer);
 		mxEvent.consume(event);
 	});
 
@@ -228,7 +258,7 @@ var initLinterWindow = function (ui) {
 			document.body.offsetWidth - 300;
 		var oy = (saved != null && saved.y != null) ? saved.y : 100;
 		var ow = (saved != null && saved.w != null) ? saved.w : 400;
-		var oh = (saved != null && saved.h != null) ? saved.h : 180;
+		var oh = (saved != null && saved.h != null) ? saved.h : 420;
 		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
 
 		if (ui.installWindowPersistence != null) {
@@ -240,4 +270,5 @@ var initLinterWindow = function (ui) {
 	} else {
 		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
 	}
+	refreshLinterLog(ui, ui.linterWindow.logContainer);
 }

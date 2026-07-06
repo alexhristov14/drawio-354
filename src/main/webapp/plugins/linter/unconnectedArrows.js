@@ -4,8 +4,7 @@ function detectUnconnectedArrows(ui){
   this.graph = ui.editor.graph
   //We need it
   this.cells = this.graph.model.cells
-  console.log(this.cells)
-  
+
   Object.values(this.cells).forEach(value => {
     //If it is an arrow/connection
     if(value.edge){
