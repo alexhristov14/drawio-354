@@ -1,6 +1,9 @@
 /**
  * Linter plugin
  */
+
+mxscript('plugins/linter/userRules.js', null, null, null, true);
+
 Draw.loadPlugin(function (ui) {
 	window.debugUi = ui;
 	//Load the file responsible for overlapping shape detection logic
@@ -11,79 +14,144 @@ Draw.loadPlugin(function (ui) {
 	mxscript("plugins/linter/errorWarningLog.js", null, null, null, true)
 	mxResources.parse('linter=Linter');
 
-	// var CustomDialog = function(editorUi, content, okFn, cancelFn, okButtonText, helpLink,
-	// buttonsContent, hideCancel, cancelButtonText, hideAfterOKFn, customButtons,
-	// marginTop)
-	// EditorUi.prototype.showDialog = function(elt, w, h, modal, closable, onClose, noScroll, transparent, minSize, ignoreBgClick, persistenceKey)
-	ui.actions.addAction('linter', () => initLinterWindow(ui));
+	ui.actions.addAction('linter', function () {
+		initLinterWindow(ui);
+	});
 
 	const menu = ui.menus.get('extras');
 	const oldFunct = menu.funct;
+
 	menu.funct = function (menu, parent) {
 		oldFunct.apply(this, arguments);
-
 		ui.menus.addMenuItems(menu, ['-', 'linter'], parent);
 	};
 });
 
-const defaultLinterSettings = {
+
+const fallbackLinterSettings = {
 	overlappingShapes: {
+		enabled: true,
 		level: 'warning'
 	},
 	unconnectedEdges: {
+		enabled: true,
 		level: 'warning'
 	},
 	maxLength: {
+		enabled: true,
 		level: 'warning',
 		inputType: 'number',
 		value: 100
 	}
 };
 
+
 const cloneLinterSettings = function (settings) {
 	return JSON.parse(JSON.stringify(settings));
 };
 
 const getLinterSettings = function () {
-	if (mxSettings.settings.linter == null) {
-		mxSettings.settings.linter = cloneLinterSettings(defaultLinterSettings);
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
+		return window.LinterUserRules.load();
 	}
-	return mxSettings.settings.linter;
+
+	EditorUi.debug('LinterUserRules not loaded. Using fallback linter settings.');
+
+	return cloneLinterSettings(fallbackLinterSettings);
 };
 
 const saveLinterSettings = function (settings) {
-	mxSettings.settings.linter = cloneLinterSettings(settings);
-	mxSettings.save();
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.save === 'function') {
+		const updatedSettings = window.LinterUserRules.save(settings);
+		EditorUi.debug('Linter settings saved.');
+		return updatedSettings;
+	}
+
+	EditorUi.debug('LinterUserRules not loaded. Could not save linter settings.');
+
+	return settings;
 };
 
-const cancelLinterSettings = function (ui) {
+const resetLinterSettings = function () {
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.reset === 'function') {
+		const resetSettings = window.LinterUserRules.reset();
+		EditorUi.debug('Linter settings reset to defaults.');
+		return resetSettings;
+	}
+
+	EditorUi.debug('LinterUserRules not loaded. Could not reset linter settings.');
+
+	return cloneLinterSettings(fallbackLinterSettings);
+};
+
+const exportLinterSettings = function (settings) {
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.export === 'function') {
+		window.LinterUserRules.export(settings);
+		EditorUi.debug('Linter settings exported.');
+		return;
+	}
+
+	EditorUi.debug('LinterUserRules not loaded. Could not export linter settings.');
+};
+
+const importLinterSettingsFromText = function (jsonText) {
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.importFromText === 'function') {
+		const importedSettings = window.LinterUserRules.importFromText(jsonText);
+		EditorUi.debug('Linter settings imported.');
+		return importedSettings;
+	}
+
+	EditorUi.debug('LinterUserRules not loaded. Could not import linter settings.');
+
+	return getLinterSettings();
+};
+
+const getLabel = function (resourceKey, fallbackText) {
+	const value = mxResources.get(resourceKey);
+
+	return value != null ? value : fallbackText;
+};
+
+const createFooterButton = function (text) {
+	const button = document.createElement('button');
+
+	button.appendChild(document.createTextNode(text));
+	button.style.marginRight = '8px';
+
+	return button;
+};
+
+const cancelLinterSettings = function () {
 	EditorUi.debug('Cancelling linter settings');
 };
 
 var LinterWindow = function (editorUi, x, y, w, h) {
 	this.settings = cloneLinterSettings(getLinterSettings());
+
 	const self = this;
-	/**
-	 * Create setting row with label, warning and error radio buttons, and optional input field
-	 */
+
+
 	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
+		var input = null;
 
-		// Setting name
 		let td = document.createElement('td');
 		td.style.verticalAlign = 'middle';
 		td.style.padding = '4px 8px';
 		td.style.whiteSpace = 'nowrap';
-		mxUtils.write(td, mxResources.get(labelResource));
+		mxUtils.write(td, getLabel(labelResource, labelResource));
 		row.appendChild(td);
 
-		function updateLevel() {
-			if (warning.checked) {
-				setting.level = 'warning';
-			} else if (error.checked) {
-				setting.level = 'error';
-			}
-		}
+		// Enabled
+		td = document.createElement('td');
+		td.style.textAlign = 'center';
+
+		const enabled = document.createElement('input');
+		enabled.type = 'checkbox';
+		enabled.checked = setting.enabled !== false;
+
+		td.appendChild(enabled);
+		row.appendChild(td);
 
 		// Warning
 		td = document.createElement('td');
@@ -114,21 +182,52 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		mxEvent.addListener(warning, 'change', updateLevel);
 		mxEvent.addListener(error, 'change', updateLevel);
 
+		// Value
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
 
 		if (setting.inputType != null) {
-			const input = document.createElement('input');
+			input = document.createElement('input');
 			input.type = setting.inputType;
 			input.value = setting.value || '';
 			input.style.width = '60px';
+
 			mxEvent.addListener(input, 'change', function () {
 				setting.value = input.value;
 			});
+
 			td.appendChild(input);
 		}
 
 		row.appendChild(td);
+
+		// Hide the level and value inputs if the rule is disabled
+		mxEvent.addListener(enabled, 'change', function () {
+			setting.enabled = enabled.checked;
+			if(!enabled.checked) {
+				warning.hidden = true;
+				error.hidden = true;
+				if (setting.inputType != null){
+					input.hidden = true;
+				}
+			}else{
+				warning.hidden = false;
+				error.hidden = false;
+				if (setting.inputType != null){
+					input.hidden = false;
+				}
+			}
+		});
+
+		function updateLevel() {
+			if (warning.checked) {
+				setting.level = 'warning';
+			} else if (error.checked) {
+				setting.level = 'error';
+			}
+		}
+
+		
 
 		return row;
 	}
@@ -144,7 +243,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	content.style.left = '0px';
 	content.style.right = '0px';
 	content.style.top = '0px';
-	content.style.bottom = '32px';
+	content.style.bottom = '42px';
 	content.style.overflow = 'auto';
 	content.style.padding = '10px';
 	content.style.boxSizing = 'border-box';
@@ -162,17 +261,17 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	// Header
 	const header = document.createElement('tr');
 
-	['Setting', 'Warning', 'Error', 'Value'].forEach(function (text) {
+	['Setting', 'Enabled', 'Warning', 'Error', 'Value'].forEach(function (text) {
 		const th = document.createElement('th');
 		th.style.textAlign = 'left';
 		th.style.padding = '4px 8px';
-		mxUtils.write(th, mxResources.get(text.toLowerCase()) || text);
+		mxUtils.write(th, getLabel(text.toLowerCase(), text));
 		header.appendChild(th);
 	});
 
 	tbody.appendChild(header);
 
-	Object.keys(self.settings).map(function (key) {
+	Object.keys(self.settings).forEach(function (key) {
 		const setting = self.settings[key];
 		const row = createSettingRow(key, 'ge' + key, setting);
 		tbody.appendChild(row);
@@ -204,23 +303,65 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.style.left = '0px';
 	footer.style.right = '0px';
 	footer.style.bottom = '0px';
-	footer.style.height = '32px';
-	footer.style.padding = '3px 4px 4px 4px';
+	footer.style.height = '42px';
+	footer.style.padding = '6px 8px';
 	footer.style.borderWidth = '1px 0 0 0';
 	footer.style.borderStyle = 'solid';
 	footer.style.display = 'flex';
 	footer.style.alignItems = 'center';
+	footer.style.justifyContent = 'flex-end';
 
-	const addLink = document.createElement('a');
-	addLink.className = 'geButton';
-	addLink.style.backgroundImage = 'url(' + Editor.plusImage + ')';
-	addLink.setAttribute('title', mxResources.get('save'));
-	footer.appendChild(addLink);
+	const importInput = document.createElement('input');
+	importInput.type = 'file';
+	importInput.accept = 'application/json';
+	importInput.style.display = 'none';
 
-	mxEvent.addListener(addLink, 'click', function (event) {
+	mxEvent.addListener(importInput, 'change', function (event) {
+		const file = event.target.files[0];
+
+		if (file == null) {
+			return;
+		}
+
+		const reader = new FileReader();
+
+		reader.onload = function () {
+			self.settings = importLinterSettingsFromText(reader.result);
+
+			if (editorUi.linterWindow != null) {
+				editorUi.linterWindow.window.destroy();
+				editorUi.linterWindow = null;
+			}
+
+			initLinterWindow(editorUi);
+		};
+
+		reader.readAsText(file);
+		importInput.value = '';
+	});
+
+	div.appendChild(importInput);
+
+	const saveButton = createFooterButton('Save');
+	mxEvent.addListener(saveButton, 'click', function (event) {
 		saveLinterSettings(self.settings);
 		mxEvent.consume(event);
 	});
+	footer.appendChild(saveButton);
+
+	const resetButton = createFooterButton('Reset');
+	mxEvent.addListener(resetButton, 'click', function (event) {
+		self.settings = resetLinterSettings();
+
+		if (editorUi.linterWindow != null) {
+			editorUi.linterWindow.window.destroy();
+			editorUi.linterWindow = null;
+		}
+
+		initLinterWindow(editorUi);
+		mxEvent.consume(event);
+	});
+	footer.appendChild(resetButton);
 
 	// to the right of the save button, add a "Run" button that refreshes the log
 	var runLink = document.createElement('a');
@@ -234,6 +375,19 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		mxEvent.consume(event);
 	});
 
+	const exportButton = createFooterButton('Export');
+	mxEvent.addListener(exportButton, 'click', function (event) {
+		exportLinterSettings(self.settings);
+		mxEvent.consume(event);
+	});
+	footer.appendChild(exportButton);
+
+	const importButton = createFooterButton('Import');
+	mxEvent.addListener(importButton, 'click', function (event) {
+		importInput.click();
+		mxEvent.consume(event);
+	});
+	footer.appendChild(importButton);
 
 	div.appendChild(footer);
 
@@ -249,9 +403,20 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
+	const settings = getLinterSettings();
+
+	if (settings.unconnectedEdges == null || settings.unconnectedEdges.enabled !== false) {
+		if (typeof detectUnconnectedArrows === 'function') {
+			detectUnconnectedArrows(ui);
+		} else {
+			EditorUi.debug('detectUnconnectedArrows is not loaded.');
+		}
+	} else {
+		EditorUi.debug('Skipping unconnected edge detection because the rule is disabled.');
+	}
 
 	if (ui.linterWindow == null) {
-		var saved = (ui.installWindowPersistence != null) ?
+		const saved = ui.installWindowPersistence != null ?
 			mxSettings.getWindowState('linter') : null;
 		var ox = (saved != null && saved.x != null) ? saved.x :
 			document.body.offsetWidth - 300;
@@ -262,6 +427,7 @@ var initLinterWindow = function (ui) {
 
 		if (ui.installWindowPersistence != null) {
 			ui.installWindowPersistence('linter', ui.linterWindow);
+
 			if (saved != null) {
 				ui.restoreWindowState('linter', ui.linterWindow);
 			}
