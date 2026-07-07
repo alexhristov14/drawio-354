@@ -180,6 +180,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	content.appendChild(table);
 
+	// Error/Warning log
 	var logTitle = document.createElement('div');
 	logTitle.style.marginTop = '12px';
 	logTitle.style.fontWeight = 'bold';
@@ -221,6 +222,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		mxEvent.consume(event);
 	});
 
+	// to the right of the save button, add a "Run" button that refreshes the log
 	var runLink = document.createElement('a');
 	runLink.className = 'geButton';
 	runLink.style.marginLeft = '8px';
@@ -247,9 +249,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 };
 
 var initLinterWindow = function (ui) {
-	var overlapping = new overlappingShapesHelper(ui)
-	overlapping.detectOverlappingShapes()
-	detectUnconnectedArrows(ui)
 
 	if (ui.linterWindow == null) {
 		var saved = (ui.installWindowPersistence != null) ?
