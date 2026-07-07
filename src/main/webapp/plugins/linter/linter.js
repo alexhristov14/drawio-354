@@ -5,8 +5,13 @@
 mxscript('plugins/linter/userRules.js', null, null, null, true);
 
 Draw.loadPlugin(function (ui) {
-	mxscript('plugins/linter/unconnectedArrows.js', null, null, null, true);
-
+	window.debugUi = ui;
+	//Load the file responsible for overlapping shape detection logic
+	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
+	//Load the file responsible for unconnected Arrow detection logic
+	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
+	//Load the file responsible for error/warning log management
+	mxscript("plugins/linter/errorWarningLog.js", null, null, null, true)
 	mxResources.parse('linter=Linter');
 
 	ui.actions.addAction('linter', function () {
@@ -274,6 +279,24 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 	content.appendChild(table);
 
+	// Error/Warning log
+	var logTitle = document.createElement('div');
+	logTitle.style.marginTop = '12px';
+	logTitle.style.fontWeight = 'bold';
+	logTitle.style.fontSize = '12px';
+	mxUtils.write(logTitle, 'Errors & Warnings');
+	content.appendChild(logTitle);
+
+	var logContainer = document.createElement('div');
+	logContainer.style.marginTop = '4px';
+	logContainer.style.minHeight = '60px';
+	logContainer.style.maxHeight = '150px';
+	logContainer.style.overflow = 'auto';
+	logContainer.style.border = '1px solid light-dark(#ddd,#505759)';
+	logContainer.style.backgroundColor = 'light-dark(#fafafa,#2a2a2a)';
+	content.appendChild(logContainer);
+	this.logContainer = logContainer;
+
 	const footer = document.createElement('div');
 	footer.className = 'geToolbarContainer geDialogToolbar';
 	footer.style.position = 'absolute';
@@ -340,6 +363,18 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	});
 	footer.appendChild(resetButton);
 
+	// to the right of the save button, add a "Run" button that refreshes the log
+	var runLink = document.createElement('a');
+	runLink.className = 'geButton';
+	runLink.style.marginLeft = '8px';
+	mxUtils.write(runLink, 'Run');
+	footer.appendChild(runLink);
+
+	mxEvent.addListener(runLink, 'click', function (event) {
+		refreshLinterLog(editorUi, self.logContainer);
+		mxEvent.consume(event);
+	});
+
 	const exportButton = createFooterButton('Export');
 	mxEvent.addListener(exportButton, 'click', function (event) {
 		exportLinterSettings(self.settings);
@@ -383,20 +418,12 @@ var initLinterWindow = function (ui) {
 	if (ui.linterWindow == null) {
 		const saved = ui.installWindowPersistence != null ?
 			mxSettings.getWindowState('linter') : null;
-
-		const ox = saved != null && saved.x != null ?
-			saved.x : document.body.offsetWidth - 420;
-
-		const oy = saved != null && saved.y != null ?
-			saved.y : 100;
-
-		const ow = saved != null && saved.w != null ?
-			saved.w : 520;
-
-		const oh = saved != null && saved.h != null ?
-			saved.h : 220;
-
-		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh);
+		var ox = (saved != null && saved.x != null) ? saved.x :
+			document.body.offsetWidth - 300;
+		var oy = (saved != null && saved.y != null) ? saved.y : 100;
+		var ow = (saved != null && saved.w != null) ? saved.w : 400;
+		var oh = (saved != null && saved.h != null) ? saved.h : 420;
+		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
 
 		if (ui.installWindowPersistence != null) {
 			ui.installWindowPersistence('linter', ui.linterWindow);
@@ -408,4 +435,5 @@ var initLinterWindow = function (ui) {
 	} else {
 		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
 	}
-};
+	refreshLinterLog(ui, ui.linterWindow.logContainer);
+}
