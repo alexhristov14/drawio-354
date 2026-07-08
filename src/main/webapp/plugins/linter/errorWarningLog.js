@@ -18,6 +18,7 @@ function collectLinterMessages(ui) {
   var overlapping = new overlappingShapesHelper(ui);
   overlapping.detectOverlappingShapes();
   detectUnconnectedArrows(ui);
+  detectTooManyArrows(ui);
 
   var messages = [];
   Object.values(graph.model.cells).forEach(function (cell) {

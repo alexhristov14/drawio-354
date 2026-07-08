@@ -28,6 +28,12 @@
       inputType: 'number',
       value: 100
     }
+    ,tooManyArrows: {
+      enabled: true,
+      level: 'warning',
+      inputType: 'number',
+      value: 4
+    }
   };
 
   /**

@@ -10,6 +10,7 @@ Draw.loadPlugin(function (ui) {
 	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
 	//Load the file responsible for unconnected Arrow detection logic
 	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
+	mxscript("plugins/linter/tooManyArrows.js", null, null, null, true)
 	//Load the file responsible for error/warning log management
 	mxscript("plugins/linter/errorWarningLog.js", null, null, null, true)
 	mxResources.parse('linter=Linter');
