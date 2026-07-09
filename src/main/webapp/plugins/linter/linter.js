@@ -84,28 +84,6 @@ const resetLinterSettings = function () {
 	return cloneLinterSettings(fallbackLinterSettings);
 };
 
-const exportLinterSettings = function (settings) {
-	if (window.LinterUserRules != null && typeof window.LinterUserRules.export === 'function') {
-		window.LinterUserRules.export(settings);
-		EditorUi.debug('Linter settings exported.');
-		return;
-	}
-
-	EditorUi.debug('LinterUserRules not loaded. Could not export linter settings.');
-};
-
-const importLinterSettingsFromText = function (jsonText) {
-	if (window.LinterUserRules != null && typeof window.LinterUserRules.importFromText === 'function') {
-		const importedSettings = window.LinterUserRules.importFromText(jsonText);
-		EditorUi.debug('Linter settings imported.');
-		return importedSettings;
-	}
-
-	EditorUi.debug('LinterUserRules not loaded. Could not import linter settings.');
-
-	return getLinterSettings();
-};
-
 const getLabel = function (resourceKey, fallbackText) {
 	const value = mxResources.get(resourceKey);
 
@@ -127,9 +105,7 @@ const cancelLinterSettings = function () {
 
 var LinterWindow = function (editorUi, x, y, w, h) {
 	this.settings = cloneLinterSettings(getLinterSettings());
-
 	const self = this;
-
 
 	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
@@ -311,37 +287,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.style.alignItems = 'center';
 	footer.style.justifyContent = 'flex-end';
 
-	const importInput = document.createElement('input');
-	importInput.type = 'file';
-	importInput.accept = 'application/json';
-	importInput.style.display = 'none';
-
-	mxEvent.addListener(importInput, 'change', function (event) {
-		const file = event.target.files[0];
-
-		if (file == null) {
-			return;
-		}
-
-		const reader = new FileReader();
-
-		reader.onload = function () {
-			self.settings = importLinterSettingsFromText(reader.result);
-
-			if (editorUi.linterWindow != null) {
-				editorUi.linterWindow.window.destroy();
-				editorUi.linterWindow = null;
-			}
-
-			initLinterWindow(editorUi);
-		};
-
-		reader.readAsText(file);
-		importInput.value = '';
-	});
-
-	div.appendChild(importInput);
-
 	const saveButton = createFooterButton('Save');
 	mxEvent.addListener(saveButton, 'click', function (event) {
 		saveLinterSettings(self.settings);
@@ -374,20 +319,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		refreshLinterLog(editorUi, self.logContainer);
 		mxEvent.consume(event);
 	});
-
-	const exportButton = createFooterButton('Export');
-	mxEvent.addListener(exportButton, 'click', function (event) {
-		exportLinterSettings(self.settings);
-		mxEvent.consume(event);
-	});
-	footer.appendChild(exportButton);
-
-	const importButton = createFooterButton('Import');
-	mxEvent.addListener(importButton, 'click', function (event) {
-		importInput.click();
-		mxEvent.consume(event);
-	});
-	footer.appendChild(importButton);
 
 	div.appendChild(footer);
 

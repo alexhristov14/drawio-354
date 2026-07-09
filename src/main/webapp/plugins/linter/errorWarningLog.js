@@ -13,11 +13,26 @@ function getLinterHoverHighlight(ui) {
 
 // Runs every detector, then returns the list of currently-flagged cells
 function collectLinterMessages(ui) {
+  
   var graph = ui.editor.graph;
+  var userRules = {};
+
+  if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
+    userRules = window.LinterUserRules.load();
+  }
 
   var overlapping = new overlappingShapesHelper(ui);
-  overlapping.detectOverlappingShapes();
-  detectUnconnectedArrows(ui);
+  if (userRules != null && userRules.overlappingShapes != null && userRules.overlappingShapes.enabled !== false) {
+    overlapping.detectOverlappingShapes();
+  } else {
+    overlapping.clearAllMarks();
+  }
+
+  if (userRules != null && userRules.unconnectedEdges != null && userRules.unconnectedEdges.enabled !== false) {
+    detectUnconnectedArrows(ui);
+  }else{
+    revertUnconnectedArrows(ui);
+  }
 
   var messages = [];
   Object.values(graph.model.cells).forEach(function (cell) {
@@ -25,7 +40,7 @@ function collectLinterMessages(ui) {
       messages.push(cell);
     }
   });
-
+console.log(userRules);
   return messages;
 }
 
@@ -47,6 +62,7 @@ function refreshLinterLog(ui, logContainer) {
   }
 
   messages.forEach(function (cell) {
+    console.log('Linter message: ' + cell.message + ' for cell ' + cell.id);
     var row = document.createElement('div');
     row.style.padding = '6px 8px';
     row.style.borderBottom = '1px solid light-dark(#ddd,#505759)';

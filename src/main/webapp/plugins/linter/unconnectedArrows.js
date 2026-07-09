@@ -39,3 +39,22 @@ function detectUnconnectedArrows(ui){
   //Used to update the graph. Perhaps better methods exist, but this one works
   this.graph.refresh()
 }
+
+function revertUnconnectedArrows(ui){
+  this.graph = ui.editor.graph
+  this.cells = this.graph.model.cells
+
+  Object.values(this.cells).forEach(value => {
+        //If it is an arrow/connection
+        //Remove oldColor
+        if(value.oldColor){
+          this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value])
+          //Remove the unneeded property
+          delete value.oldColor
+        }
+        //Remove message
+        if(value.message){
+          delete value.message
+        }
+  });
+}

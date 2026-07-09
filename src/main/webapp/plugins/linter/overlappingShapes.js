@@ -65,3 +65,22 @@ overlappingShapesHelper.prototype._markRed = function (value) {
   }
   this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, "light-dark(#FF0000,#FF0000)", [value])
 }
+
+overlappingShapesHelper.prototype.clearAllMarks = function () {
+  var vertices = Object.values(this.cells).filter(function (value) {
+    return value.vertex && !value.edge
+  });
+  var overlapping = {}
+
+  vertices.forEach(function (value) {
+    if (!overlapping[value.mxObjectId] && value.oldStroke) {
+      this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldStroke, [value])
+      delete value.oldStroke
+      delete value.message
+    }
+  }, this)
+
+  //Update the graph.
+  this.graph.refresh()
+
+}
