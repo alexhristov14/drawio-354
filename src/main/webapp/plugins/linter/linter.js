@@ -129,35 +129,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		td.appendChild(enabled);
 		row.appendChild(td);
 
-		// Warning
-		td = document.createElement('td');
-		td.style.textAlign = 'center';
-
-		const warning = document.createElement('input');
-		warning.type = 'radio';
-		warning.name = name;
-		warning.value = 'warning';
-		warning.checked = setting.level === 'warning';
-
-		td.appendChild(warning);
-		row.appendChild(td);
-
-		// Error
-		td = document.createElement('td');
-		td.style.textAlign = 'center';
-
-		const error = document.createElement('input');
-		error.type = 'radio';
-		error.name = name;
-		error.value = 'error';
-		error.checked = setting.level === 'error';
-
-		td.appendChild(error);
-		row.appendChild(td);
-
-		mxEvent.addListener(warning, 'change', updateLevel);
-		mxEvent.addListener(error, 'change', updateLevel);
-
 		// Value
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
@@ -181,14 +152,10 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		mxEvent.addListener(enabled, 'change', function () {
 			setting.enabled = enabled.checked;
 			if(!enabled.checked) {
-				warning.hidden = true;
-				error.hidden = true;
 				if (setting.inputType != null){
 					input.hidden = true;
 				}
 			}else{
-				warning.hidden = false;
-				error.hidden = false;
 				if (setting.inputType != null){
 					input.hidden = false;
 				}
@@ -196,11 +163,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		});
 
 		function updateLevel() {
-			if (warning.checked) {
-				setting.level = 'warning';
-			} else if (error.checked) {
-				setting.level = 'error';
-			}
+			setting.level = 'warning';
 		}
 
 		
@@ -237,7 +200,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	// Header
 	const header = document.createElement('tr');
 
-	['Setting', 'Enabled', 'Warning', 'Error', 'Value'].forEach(function (text) {
+	['Setting', 'Enabled', 'Value'].forEach(function (text) {
 		const th = document.createElement('th');
 		th.style.textAlign = 'left';
 		th.style.padding = '4px 8px';
