@@ -21,12 +21,6 @@
     unconnectedEdges: {
       enabled: true,
       level: 'warning'
-    },
-    maxLength: {
-      enabled: true,
-      level: 'warning',
-      inputType: 'number',
-      value: 100
     }
   };
 

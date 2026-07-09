@@ -36,12 +36,6 @@ const fallbackLinterSettings = {
 	unconnectedEdges: {
 		enabled: true,
 		level: 'warning'
-	},
-	maxLength: {
-		enabled: true,
-		level: 'warning',
-		inputType: 'number',
-		value: 100
 	}
 };
 
@@ -148,18 +142,10 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 		row.appendChild(td);
 
+	
 		// Hide the level and value inputs if the rule is disabled
 		mxEvent.addListener(enabled, 'change', function () {
 			setting.enabled = enabled.checked;
-			if(!enabled.checked) {
-				if (setting.inputType != null){
-					input.hidden = true;
-				}
-			}else{
-				if (setting.inputType != null){
-					input.hidden = false;
-				}
-			}
 		});
 
 		function updateLevel() {
@@ -167,7 +153,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		}
 
 		
-
+		
 		return row;
 	}
 
@@ -211,8 +197,10 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	tbody.appendChild(header);
 
 	Object.keys(self.settings).forEach(function (key) {
+		console.log(key);
 		const setting = self.settings[key];
 		const row = createSettingRow(key, 'ge' + key, setting);
+		console.log(row);
 		tbody.appendChild(row);
 	});
 
