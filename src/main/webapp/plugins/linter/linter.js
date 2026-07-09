@@ -186,7 +186,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	// Header
 	const header = document.createElement('tr');
 
-	['Setting', 'Enabled', 'Value'].forEach(function (text) {
+	['Setting', 'Enabled'].forEach(function (text) {
 		const th = document.createElement('th');
 		th.style.textAlign = 'left';
 		th.style.padding = '4px 8px';
