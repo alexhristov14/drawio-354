@@ -37,12 +37,6 @@ const fallbackLinterSettings = {
 	unconnectedEdges: {
 		enabled: true,
 		level: 'warning'
-	},
-	maxLength: {
-		enabled: true,
-		level: 'warning',
-		inputType: 'number',
-		value: 100
 	}
 };
 
@@ -85,28 +79,6 @@ const resetLinterSettings = function () {
 	return cloneLinterSettings(fallbackLinterSettings);
 };
 
-const exportLinterSettings = function (settings) {
-	if (window.LinterUserRules != null && typeof window.LinterUserRules.export === 'function') {
-		window.LinterUserRules.export(settings);
-		EditorUi.debug('Linter settings exported.');
-		return;
-	}
-
-	EditorUi.debug('LinterUserRules not loaded. Could not export linter settings.');
-};
-
-const importLinterSettingsFromText = function (jsonText) {
-	if (window.LinterUserRules != null && typeof window.LinterUserRules.importFromText === 'function') {
-		const importedSettings = window.LinterUserRules.importFromText(jsonText);
-		EditorUi.debug('Linter settings imported.');
-		return importedSettings;
-	}
-
-	EditorUi.debug('LinterUserRules not loaded. Could not import linter settings.');
-
-	return getLinterSettings();
-};
-
 const getLabel = function (resourceKey, fallbackText) {
 	const value = mxResources.get(resourceKey);
 
@@ -128,9 +100,7 @@ const cancelLinterSettings = function () {
 
 var LinterWindow = function (editorUi, x, y, w, h) {
 	this.settings = cloneLinterSettings(getLinterSettings());
-
 	const self = this;
-
 
 	function createSettingRow(labelResource, name, setting) {
 		const row = document.createElement('tr');
@@ -154,35 +124,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		td.appendChild(enabled);
 		row.appendChild(td);
 
-		// Warning
-		td = document.createElement('td');
-		td.style.textAlign = 'center';
-
-		const warning = document.createElement('input');
-		warning.type = 'radio';
-		warning.name = name;
-		warning.value = 'warning';
-		warning.checked = setting.level === 'warning';
-
-		td.appendChild(warning);
-		row.appendChild(td);
-
-		// Error
-		td = document.createElement('td');
-		td.style.textAlign = 'center';
-
-		const error = document.createElement('input');
-		error.type = 'radio';
-		error.name = name;
-		error.value = 'error';
-		error.checked = setting.level === 'error';
-
-		td.appendChild(error);
-		row.appendChild(td);
-
-		mxEvent.addListener(warning, 'change', updateLevel);
-		mxEvent.addListener(error, 'change', updateLevel);
-
 		// Value
 		td = document.createElement('td');
 		td.style.textAlign = 'center';
@@ -202,34 +143,18 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 		row.appendChild(td);
 
+	
 		// Hide the level and value inputs if the rule is disabled
 		mxEvent.addListener(enabled, 'change', function () {
 			setting.enabled = enabled.checked;
-			if(!enabled.checked) {
-				warning.hidden = true;
-				error.hidden = true;
-				if (setting.inputType != null){
-					input.hidden = true;
-				}
-			}else{
-				warning.hidden = false;
-				error.hidden = false;
-				if (setting.inputType != null){
-					input.hidden = false;
-				}
-			}
 		});
 
 		function updateLevel() {
-			if (warning.checked) {
-				setting.level = 'warning';
-			} else if (error.checked) {
-				setting.level = 'error';
-			}
+			setting.level = 'warning';
 		}
 
 		
-
+		
 		return row;
 	}
 
@@ -262,7 +187,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	// Header
 	const header = document.createElement('tr');
 
-	['Setting', 'Enabled', 'Warning', 'Error', 'Value'].forEach(function (text) {
+	['Setting', 'Enabled'].forEach(function (text) {
 		const th = document.createElement('th');
 		th.style.textAlign = 'left';
 		th.style.padding = '4px 8px';
@@ -273,8 +198,10 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	tbody.appendChild(header);
 
 	Object.keys(self.settings).forEach(function (key) {
+		console.log(key);
 		const setting = self.settings[key];
 		const row = createSettingRow(key, 'ge' + key, setting);
+		console.log(row);
 		tbody.appendChild(row);
 	});
 
@@ -312,37 +239,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.style.alignItems = 'center';
 	footer.style.justifyContent = 'flex-end';
 
-	const importInput = document.createElement('input');
-	importInput.type = 'file';
-	importInput.accept = 'application/json';
-	importInput.style.display = 'none';
-
-	mxEvent.addListener(importInput, 'change', function (event) {
-		const file = event.target.files[0];
-
-		if (file == null) {
-			return;
-		}
-
-		const reader = new FileReader();
-
-		reader.onload = function () {
-			self.settings = importLinterSettingsFromText(reader.result);
-
-			if (editorUi.linterWindow != null) {
-				editorUi.linterWindow.window.destroy();
-				editorUi.linterWindow = null;
-			}
-
-			initLinterWindow(editorUi);
-		};
-
-		reader.readAsText(file);
-		importInput.value = '';
-	});
-
-	div.appendChild(importInput);
-
 	const saveButton = createFooterButton('Save');
 	mxEvent.addListener(saveButton, 'click', function (event) {
 		saveLinterSettings(self.settings);
@@ -375,20 +271,6 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 		refreshLinterLog(editorUi, self.logContainer);
 		mxEvent.consume(event);
 	});
-
-	const exportButton = createFooterButton('Export');
-	mxEvent.addListener(exportButton, 'click', function (event) {
-		exportLinterSettings(self.settings);
-		mxEvent.consume(event);
-	});
-	footer.appendChild(exportButton);
-
-	const importButton = createFooterButton('Import');
-	mxEvent.addListener(importButton, 'click', function (event) {
-		importInput.click();
-		mxEvent.consume(event);
-	});
-	footer.appendChild(importButton);
 
 	div.appendChild(footer);
 

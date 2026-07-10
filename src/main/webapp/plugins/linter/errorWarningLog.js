@@ -13,12 +13,31 @@ function getLinterHoverHighlight(ui) {
 
 // Runs every detector, then returns the list of currently-flagged cells
 function collectLinterMessages(ui) {
+
   var graph = ui.editor.graph;
+  var userRules = {};
+
+  if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
+    userRules = window.LinterUserRules.load();
+  }
 
   var overlapping = new overlappingShapesHelper(ui);
-  overlapping.detectOverlappingShapes();
-  detectUnconnectedArrows(ui);
-  detectTooManyArrows(ui);
+
+  if (userRules != null && userRules.overlappingShapes != null && userRules.overlappingShapes.enabled !== false) {
+    overlapping.detectOverlappingShapes();
+  } else {
+    overlapping.clearAllMarks();
+  }
+
+  if (userRules != null && userRules.unconnectedEdges != null && userRules.unconnectedEdges.enabled !== false) {
+    detectUnconnectedArrows(ui);
+  } else {
+    revertUnconnectedArrows(ui);
+  }
+
+  if (userRules != null && userRules.tooManyArrows != null && userRules.tooManyArrows.enabled !== false) {
+    detectTooManyArrows(ui);
+  }
 
   var messages = [];
   Object.values(graph.model.cells).forEach(function (cell) {
