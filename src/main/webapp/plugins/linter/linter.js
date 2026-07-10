@@ -268,6 +268,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	footer.appendChild(runLink);
 
 	mxEvent.addListener(runLink, 'click', function (event) {
+		saveLinterSettings(self.settings);
 		refreshLinterLog(editorUi, self.logContainer);
 		mxEvent.consume(event);
 	});
