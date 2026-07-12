@@ -1,5 +1,13 @@
 # draw.io
 
+A fork of the [draw.io](https://github.com/jgraph/drawio) repository for use in the COMP 354 development project.
+
+Our code is located under `src/main/webapp/plugins/linter` and deployed at [https://www.melentii.com/drawio-354?p=linter&dev=1]. 
+
+To use the plugin, launch the website and go to Extras > Linter which will open the linter window.
+
+Below is the original draw.io README.
+
 ## About
 
 draw.io is a configurable diagramming and whiteboarding application, jointly owned and developed by draw.io Ltd (previously named JGraph) and draw.io AG. We also run a production deployment at https://app.diagrams.net.
