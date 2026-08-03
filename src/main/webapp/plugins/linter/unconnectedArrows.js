@@ -51,7 +51,12 @@ function revertUnconnectedArrows(ui) {
 	this.cells = this.graph.model.cells;
 
 	Object.values(this.cells).forEach((value) => {
-		//If it is an arrow/connection
+		// touch arrows/edges here, tooManyArrows.js marks shapes using
+		//these same oldColor/message properties, so without this check we'd
+		//also erase its marks whenever this rule gets reverted
+		if (!value.edge) {
+			return;
+		}
 		//Remove oldColor
 		if (value.oldColor) {
 			this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
