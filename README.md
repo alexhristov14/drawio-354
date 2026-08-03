@@ -6,6 +6,17 @@ Our code is located under `src/main/webapp/plugins/linter` and deployed at [http
 
 To use the plugin, launch the website and go to Extras > Linter which will open the linter window.
 
+## Development checks
+
+Install the pinned development tools and run the same formatter and linter checks used by CI:
+
+```sh
+npm ci
+npm run check
+```
+
+Run `npm run format` to automatically format the linter plugin source files.
+
 Below is the original draw.io README.
 
 ## About
