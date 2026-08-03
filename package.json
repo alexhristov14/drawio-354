@@ -1,0 +1,15 @@
+{
+  "name": "drawio-354",
+  "private": true,
+  "scripts": {
+    "check": "npm run format:check && npm run lint",
+    "format": "prettier --write \"src/main/webapp/plugins/linter/**/*.js\"",
+    "format:check": "prettier --check \"src/main/webapp/plugins/linter/**/*.js\"",
+    "lint": "eslint \"src/main/webapp/plugins/linter/**/*.js\""
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.0",
+    "prettier": "3.9.6"
+  }
+}

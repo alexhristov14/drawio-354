@@ -7,12 +7,12 @@ mxscript('plugins/linter/userRules.js', null, null, null, true);
 Draw.loadPlugin(function (ui) {
 	window.debugUi = ui;
 	//Load the file responsible for overlapping shape detection logic
-	mxscript("plugins/linter/overlappingShapes.js", null, null, null, true)
+	mxscript('plugins/linter/overlappingShapes.js', null, null, null, true);
 	//Load the file responsible for unconnected Arrow detection logic
-	mxscript("plugins/linter/unconnectedArrows.js", null, null, null, true)
-	mxscript("plugins/linter/tooManyArrows.js", null, null, null, true)
+	mxscript('plugins/linter/unconnectedArrows.js', null, null, null, true);
+	mxscript('plugins/linter/tooManyArrows.js', null, null, null, true);
 	//Load the file responsible for error/warning log management
-	mxscript("plugins/linter/errorWarningLog.js", null, null, null, true)
+	mxscript('plugins/linter/errorWarningLog.js', null, null, null, true);
 	mxResources.parse('linter=Linter');
 
 	ui.actions.addAction('linter', function () {
@@ -28,7 +28,6 @@ Draw.loadPlugin(function (ui) {
 	};
 });
 
-
 const fallbackLinterSettings = {
 	overlappingShapes: {
 		enabled: true,
@@ -39,7 +38,6 @@ const fallbackLinterSettings = {
 		level: 'warning'
 	}
 };
-
 
 const cloneLinterSettings = function (settings) {
 	return JSON.parse(JSON.stringify(settings));
@@ -94,10 +92,6 @@ const createFooterButton = function (text) {
 	return button;
 };
 
-const cancelLinterSettings = function () {
-	EditorUi.debug('Cancelling linter settings');
-};
-
 var LinterWindow = function (editorUi, x, y, w, h) {
 	this.settings = cloneLinterSettings(getLinterSettings());
 	const self = this;
@@ -143,18 +137,11 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 		row.appendChild(td);
 
-	
 		// Hide the level and value inputs if the rule is disabled
 		mxEvent.addListener(enabled, 'change', function () {
 			setting.enabled = enabled.checked;
 		});
 
-		function updateLevel() {
-			setting.level = 'warning';
-		}
-
-		
-		
 		return row;
 	}
 
@@ -300,13 +287,11 @@ var initLinterWindow = function (ui) {
 	}
 
 	if (ui.linterWindow == null) {
-		const saved = ui.installWindowPersistence != null ?
-			mxSettings.getWindowState('linter') : null;
-		var ox = (saved != null && saved.x != null) ? saved.x :
-			document.body.offsetWidth - 300;
-		var oy = (saved != null && saved.y != null) ? saved.y : 100;
-		var ow = (saved != null && saved.w != null) ? saved.w : 400;
-		var oh = (saved != null && saved.h != null) ? saved.h : 420;
+		const saved = ui.installWindowPersistence != null ? mxSettings.getWindowState('linter') : null;
+		var ox = saved != null && saved.x != null ? saved.x : document.body.offsetWidth - 300;
+		var oy = saved != null && saved.y != null ? saved.y : 100;
+		var ow = saved != null && saved.w != null ? saved.w : 400;
+		var oh = saved != null && saved.h != null ? saved.h : 420;
 		ui.linterWindow = new LinterWindow(ui, ox, oy, ow, oh, null);
 
 		if (ui.installWindowPersistence != null) {
@@ -320,4 +305,4 @@ var initLinterWindow = function (ui) {
 		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
 	}
 	refreshLinterLog(ui, ui.linterWindow.logContainer);
-}
+};

@@ -4,92 +4,104 @@
 var linterHoverHighlight = null;
 
 function getLinterHoverHighlight(ui) {
-  if (linterHoverHighlight == null) {
-    // the detectors applied, so hover is visibly distinct, orange border
-    linterHoverHighlight = new mxCellHighlight(ui.editor.graph, '#FFA500', 4);
-  }
-  return linterHoverHighlight;
+	if (linterHoverHighlight == null) {
+		// the detectors applied, so hover is visibly distinct, orange border
+		linterHoverHighlight = new mxCellHighlight(ui.editor.graph, '#FFA500', 4);
+	}
+	return linterHoverHighlight;
 }
 
 // Runs every detector, then returns the list of currently-flagged cells
 function collectLinterMessages(ui) {
+	var graph = ui.editor.graph;
+	var userRules = {};
 
-  var graph = ui.editor.graph;
-  var userRules = {};
+	if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
+		userRules = window.LinterUserRules.load();
+	}
 
-  if (window.LinterUserRules != null && typeof window.LinterUserRules.load === 'function') {
-    userRules = window.LinterUserRules.load();
-  }
+	var overlapping = new overlappingShapesHelper(ui);
 
-  var overlapping = new overlappingShapesHelper(ui);
+	if (
+		userRules != null &&
+		userRules.overlappingShapes != null &&
+		userRules.overlappingShapes.enabled !== false
+	) {
+		overlapping.detectOverlappingShapes();
+	} else {
+		overlapping.clearAllMarks();
+	}
 
-  if (userRules != null && userRules.overlappingShapes != null && userRules.overlappingShapes.enabled !== false) {
-    overlapping.detectOverlappingShapes();
-  } else {
-    overlapping.clearAllMarks();
-  }
+	if (
+		userRules != null &&
+		userRules.unconnectedEdges != null &&
+		userRules.unconnectedEdges.enabled !== false
+	) {
+		detectUnconnectedArrows(ui);
+	} else {
+		revertUnconnectedArrows(ui);
+	}
 
-  if (userRules != null && userRules.unconnectedEdges != null && userRules.unconnectedEdges.enabled !== false) {
-    detectUnconnectedArrows(ui);
-  } else {
-    revertUnconnectedArrows(ui);
-  }
+	if (
+		userRules != null &&
+		userRules.tooManyArrows != null &&
+		userRules.tooManyArrows.enabled !== false
+	) {
+		detectTooManyArrows(ui);
+	}
 
-  if (userRules != null && userRules.tooManyArrows != null && userRules.tooManyArrows.enabled !== false) {
-    detectTooManyArrows(ui);
-  }
+	var messages = [];
+	Object.values(graph.model.cells).forEach(function (cell) {
+		if (cell.message) {
+			messages.push(cell);
+		}
+	});
 
-  var messages = [];
-  Object.values(graph.model.cells).forEach(function (cell) {
-    if (cell.message) {
-      messages.push(cell);
-    }
-  });
-
-  return messages;
+	return messages;
 }
 
 // Rebuilds the log's DOM from current state and wires it to the Run button below.
 function refreshLinterLog(ui, logContainer) {
-  var graph = ui.editor.graph;
-  var messages = collectLinterMessages(ui);
-  var highlight = getLinterHoverHighlight(ui);
+	var graph = ui.editor.graph;
+	var messages = collectLinterMessages(ui);
+	var highlight = getLinterHoverHighlight(ui);
 
-  logContainer.innerHTML = '';
+	logContainer.innerHTML = '';
 
-  if (messages.length === 0) {
-    var empty = document.createElement('div');
-    empty.style.padding = '8px';
-    empty.style.color = 'light-dark(#777,#aaa)';
-    mxUtils.write(empty, 'No issues found');
-    logContainer.appendChild(empty);
-    return;
-  }
+	if (messages.length === 0) {
+		var empty = document.createElement('div');
+		empty.style.padding = '8px';
+		empty.style.color = 'light-dark(#777,#aaa)';
+		mxUtils.write(empty, 'No issues found');
+		logContainer.appendChild(empty);
+		return;
+	}
 
-  messages.forEach(function (cell) {
-    var row = document.createElement('div');
-    row.style.padding = '6px 8px';
-    row.style.borderBottom = '1px solid light-dark(#ddd,#505759)';
-    row.style.cursor = 'pointer';
-    row.style.fontSize = '12px';
-    mxUtils.write(row, cell.message);
+	messages.forEach(function (cell) {
+		var row = document.createElement('div');
+		row.style.padding = '6px 8px';
+		row.style.borderBottom = '1px solid light-dark(#ddd,#505759)';
+		row.style.cursor = 'pointer';
+		row.style.fontSize = '12px';
+		mxUtils.write(row, cell.message);
 
-    mxEvent.addListener(row, 'mouseenter', function () {
-      row.style.backgroundColor = 'light-dark(#f0f0f0,#3a3a3a)';
-      var state = graph.view.getState(cell);
-      if (state != null) highlight.highlight(state);
-    });
+		mxEvent.addListener(row, 'mouseenter', function () {
+			row.style.backgroundColor = 'light-dark(#f0f0f0,#3a3a3a)';
+			var state = graph.view.getState(cell);
+			if (state != null) highlight.highlight(state);
+		});
 
-    mxEvent.addListener(row, 'mouseleave', function () {
-      row.style.backgroundColor = '';
-      highlight.highlight(null);
-    });
+		mxEvent.addListener(row, 'mouseleave', function () {
+			row.style.backgroundColor = '';
+			highlight.highlight(null);
+		});
 
-    mxEvent.addListener(row, 'click', function () {
-      graph.setSelectionCell(cell);
-      graph.scrollCellToVisible(cell);
-    });
+		mxEvent.addListener(row, 'click', function () {
+			graph.setSelectionCell(cell);
+			graph.scrollCellToVisible(cell);
+		});
 
-    logContainer.appendChild(row);
-  });
+		logContainer.appendChild(row);
+	});
 }
+/* exported refreshLinterLog */
