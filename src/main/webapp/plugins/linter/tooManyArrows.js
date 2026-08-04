@@ -5,9 +5,11 @@ function detectTooManyArrows(ui) {
 	//We need it
 	this.cells = this.graph.model.cells;
 	//Pull the user-configurable limit from the Linter settings window
-	//(falls back to 4 if it hasn't been set yet)
+	//(falls back to 4 if it hasn't been set yet, or isn't a valid number)
 	var settings = getLinterSettings();
-	var maxArrows = (settings.tooManyArrows && Number(settings.tooManyArrows.value)) || 4;
+	// Number(0) is falsey. So to prevent it from being overriden by the default value:
+	var configuredLimitValue = settings.tooManyArrows ? Number(settings.tooManyArrows.value) : NaN;
+	var maxArrows = Number.isNaN(configuredLimitValue) ? 4 : configuredLimitValue;
 
 	Object.values(this.cells).forEach((value) => {
 		//If it is a shape (not an arrow itself)
