@@ -185,10 +185,8 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	tbody.appendChild(header);
 
 	Object.keys(self.settings).forEach(function (key) {
-		console.log(key);
 		const setting = self.settings[key];
 		const row = createSettingRow(key, 'ge' + key, setting);
-		console.log(row);
 		tbody.appendChild(row);
 	});
 
