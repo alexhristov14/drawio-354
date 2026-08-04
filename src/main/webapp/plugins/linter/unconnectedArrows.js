@@ -1,11 +1,11 @@
 //Structure inspired from the webcola plugin
 function detectUnconnectedArrows(ui) {
-	//We need it
-	this.graph = ui.editor.graph;
-	//We need it
-	this.cells = this.graph.model.cells;
+	//Use local vars instead of "this", these run as plain function calls
+	//(not "new" ), so "this" would otherwise be a global window object
+	var graph = ui.editor.graph;
+	var cells = graph.model.cells;
 
-	Object.values(this.cells).forEach((value) => {
+	Object.values(cells).forEach((value) => {
 		//If it is an arrow/connection
 		if (value.edge) {
 			//If there are lacking connections
@@ -15,23 +15,26 @@ function detectUnconnectedArrows(ui) {
 				// console.log(value.message)
 
 				//Style modification
-				if (!value.oldColor) {
+				if (value.oldColor === undefined) {
 					//New property to hold the previous non-erroring color
+					//fall back to null (not a fake color string) when theres no
+					//explicit stroke override, so restoring it later removes the
+					//style key instead of writing an invalid color value
 					value.oldColor = mxUtils.getValue(
-						this.graph.getCellStyle(value),
+						graph.getCellStyle(value),
 						mxConstants.STYLE_STROKECOLOR,
-						'defaultColor'
+						null
 					);
 				}
-				this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [
+				graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [
 					value
 				]);
 
 				//If both connections already exist
 			} else {
 				//Remove oldColor
-				if (value.oldColor) {
-					this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
+				if (value.oldColor !== undefined) {
+					graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
 					//Remove the unneeded property
 					delete value.oldColor;
 				}
@@ -43,14 +46,14 @@ function detectUnconnectedArrows(ui) {
 		}
 	});
 	//Used to update the graph. Perhaps better methods exist, but this one works
-	this.graph.refresh();
+	graph.refresh();
 }
 
 function revertUnconnectedArrows(ui) {
-	this.graph = ui.editor.graph;
-	this.cells = this.graph.model.cells;
+	var graph = ui.editor.graph;
+	var cells = graph.model.cells;
 
-	Object.values(this.cells).forEach((value) => {
+	Object.values(cells).forEach((value) => {
 		// touch arrows/edges here, tooManyArrows.js marks shapes using
 		//these same oldColor/message properties, so without this check we'd
 		//also erase its marks whenever this rule gets reverted
@@ -58,8 +61,8 @@ function revertUnconnectedArrows(ui) {
 			return;
 		}
 		//Remove oldColor
-		if (value.oldColor) {
-			this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
+		if (value.oldColor !== undefined) {
+			graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
 			//Remove the unneeded property
 			delete value.oldColor;
 		}
@@ -70,6 +73,6 @@ function revertUnconnectedArrows(ui) {
 	});
 	//detectUnconnectedArrows refreshes after making its changes, so revert
 	// should too , otherwise the restored colors can be left stale on screen
-	this.graph.refresh();
+	graph.refresh();
 }
 /* exported detectUnconnectedArrows, revertUnconnectedArrows */
