@@ -10,8 +10,15 @@ function detectUnconnectedArrows(ui) {
 		if (value.edge) {
 			//If there are lacking connections
 			if (value.source === null || value.target === null) {
-				//Property that will be used to display text in the log or on hover
-				value.message = 'Arrow ' + value.mxObjectId + ' lacks at least a connection';
+				//Say which end is missing instead of a generic message, so the
+				//log/hover text is actually useful on a diagram with many arrows
+				var missingEnd =
+					value.source === null && value.target === null
+						? 'a source and a target'
+						: value.source === null
+							? 'a source'
+							: 'a target';
+				value.message = 'Arrow ' + value.mxObjectId + ' is missing ' + missingEnd;
 				// console.log(value.message)
 
 				//Style modification
