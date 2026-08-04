@@ -68,5 +68,8 @@ function revertUnconnectedArrows(ui) {
 			delete value.message;
 		}
 	});
+	//detectUnconnectedArrows refreshes after making its changes, so revert
+	// should too , otherwise the restored colors can be left stale on screen
+	this.graph.refresh();
 }
 /* exported detectUnconnectedArrows, revertUnconnectedArrows */
