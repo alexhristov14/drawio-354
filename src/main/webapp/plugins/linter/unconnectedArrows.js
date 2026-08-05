@@ -11,39 +11,19 @@ function detectUnconnectedArrows(ui) {
 			//If there are lacking connections
 			if (value.source === null || value.target === null) {
 				//Property that will be used to display text in the log or on hover
-				value.message = 'Arrow ' + value.mxObjectId + ' lacks at least a connection';
+				setLinterMessage(
+					value,
+					'unconnectedEdges',
+					'Arrow ' + value.mxObjectId + ' lacks at least a connection'
+				);
 				// console.log(value.message)
-
-				//Style modification
-				if (!value.oldColor) {
-					//New property to hold the previous non-erroring color
-					value.oldColor = mxUtils.getValue(
-						this.graph.getCellStyle(value),
-						mxConstants.STYLE_STROKECOLOR,
-						'defaultColor'
-					);
-				}
-				this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [
-					value
-				]);
 
 				//If both connections already exist
 			} else {
-				//Remove oldColor
-				if (value.oldColor) {
-					this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
-					//Remove the unneeded property
-					delete value.oldColor;
-				}
-				//Remove message
-				if (value.message) {
-					delete value.message;
-				}
+				clearLinterMessage(value, 'unconnectedEdges');
 			}
 		}
 	});
-	//Used to update the graph. Perhaps better methods exist, but this one works
-	this.graph.refresh();
 }
 
 function revertUnconnectedArrows(ui) {
@@ -51,16 +31,8 @@ function revertUnconnectedArrows(ui) {
 	this.cells = this.graph.model.cells;
 
 	Object.values(this.cells).forEach((value) => {
-		//If it is an arrow/connection
-		//Remove oldColor
-		if (value.oldColor) {
-			this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
-			//Remove the unneeded property
-			delete value.oldColor;
-		}
-		//Remove message
-		if (value.message) {
-			delete value.message;
+		if (value.edge) {
+			clearLinterMessage(value, 'unconnectedEdges');
 		}
 	});
 }
