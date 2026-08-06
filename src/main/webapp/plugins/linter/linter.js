@@ -92,6 +92,46 @@ const createFooterButton = function (text) {
 	return button;
 };
 
+const refreshLinterWindow = function (ui) {
+	if (ui.linterWindow != null && ui.linterWindow.logContainer != null) {
+		refreshLinterLog(ui, ui.linterWindow.logContainer);
+	}
+};
+
+const installLinterAutoRefresh = function (ui) {
+	if (ui._linterAutoRefreshInstalled) {
+		return;
+	}
+
+	ui._linterAutoRefreshInstalled = true;
+	ui._linterAutoRefreshInProgress = false;
+	ui._linterAutoRefreshTimer = null;
+
+	ui.editor.graph.getModel().addListener(mxEvent.CHANGE, function () {
+		if (ui._linterAutoRefreshInProgress || ui.linterWindow == null) {
+			return;
+		}
+
+		if (ui._linterAutoRefreshTimer != null) {
+			window.clearTimeout(ui._linterAutoRefreshTimer);
+		}
+
+		ui._linterAutoRefreshTimer = window.setTimeout(function () {
+			ui._linterAutoRefreshTimer = null;
+			if (ui.linterWindow == null || ui.linterWindow.logContainer == null) {
+				return;
+			}
+
+			ui._linterAutoRefreshInProgress = true;
+			try {
+				refreshLinterWindow(ui);
+			} finally {
+				ui._linterAutoRefreshInProgress = false;
+			}
+		}, 0);
+	});
+};
+
 var LinterWindow = function (editorUi, x, y, w, h) {
 	this.settings = cloneLinterSettings(getLinterSettings());
 	const self = this;
@@ -229,6 +269,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 	const saveButton = createFooterButton('Save');
 	mxEvent.addListener(saveButton, 'click', function (event) {
 		saveLinterSettings(self.settings);
+		refreshLinterWindow(editorUi);
 		mxEvent.consume(event);
 	});
 	footer.appendChild(saveButton);
@@ -275,6 +316,7 @@ var LinterWindow = function (editorUi, x, y, w, h) {
 
 var initLinterWindow = function (ui) {
 	const settings = getLinterSettings();
+	installLinterAutoRefresh(ui);
 
 	if (settings.unconnectedEdges == null || settings.unconnectedEdges.enabled !== false) {
 		if (typeof detectUnconnectedArrows === 'function') {
@@ -304,5 +346,6 @@ var initLinterWindow = function (ui) {
 	} else {
 		ui.linterWindow.window.setVisible(!ui.linterWindow.window.isVisible());
 	}
-	refreshLinterLog(ui, ui.linterWindow.logContainer);
+
+	refreshLinterWindow(ui);
 };
