@@ -17,46 +17,52 @@ overlappingShapesHelper.prototype._boundsOverlap = function (a, b) {
 };
 
 overlappingShapesHelper.prototype.detectOverlappingShapes = function () {
-	//Only real shapes: vertices that are not edges. Skip the invisible root/layer
-	//cells by requiring geometry via getCellBounds below.
 	var vertices = Object.values(this.cells).filter(function (value) {
 		return value.vertex && !value.edge;
 	});
 
-	//Track which cells are currently overlapping so we can clear the ones
-	//that no longer are (mirrors how unconnectedArrows restores oldColor).
-	var overlapping = {};
+	// Store every overlap for each shape.
+	var overlapMap = {};
+
+	vertices.forEach(function (value) {
+		overlapMap[value.mxObjectId] = [];
+	});
 
 	for (var i = 0; i < vertices.length; i++) {
 		for (var j = i + 1; j < vertices.length; j++) {
-			var a = this.graph.getCellBounds(vertices[i]);
-			var b = this.graph.getCellBounds(vertices[j]);
+			var first = vertices[i];
+			var second = vertices[j];
 
-			if (a && b && this._boundsOverlap(a, b)) {
-				overlapping[vertices[i].mxObjectId] = true;
-				overlapping[vertices[j].mxObjectId] = true;
+			var firstBounds = this.graph.getCellBounds(first);
+			var secondBounds = this.graph.getCellBounds(second);
 
-				//Property used to display text in the log or on hover
-				setLinterMessage(
-					vertices[i],
-					'overlappingShapes',
-					'Shape ' + vertices[i].mxObjectId + ' overlaps ' + vertices[j].mxObjectId
-				);
-				setLinterMessage(
-					vertices[j],
-					'overlappingShapes',
-					'Shape ' + vertices[j].mxObjectId + ' overlaps ' + vertices[i].mxObjectId
-				);
+			if (
+				firstBounds &&
+				secondBounds &&
+				this._boundsOverlap(firstBounds, secondBounds)
+			) {
+				overlapMap[first.mxObjectId].push(second.mxObjectId);
+				overlapMap[second.mxObjectId].push(first.mxObjectId);
 			}
 		}
 	}
 
-	//Restore any shape that was flagged before but no longer overlaps
 	vertices.forEach(function (value) {
-		if (!overlapping[value.mxObjectId]) {
+		var overlappingIds = overlapMap[value.mxObjectId];
+
+		if (overlappingIds.length > 0) {
+			setLinterMessage(
+				value,
+				'overlappingShapes',
+				'Shape ' +
+					value.mxObjectId +
+					' overlaps shape(s): ' +
+					overlappingIds.join(', ')
+			);
+		} else {
 			clearLinterMessage(value, 'overlappingShapes');
 		}
-	}, this);
+	});
 };
 
 overlappingShapesHelper.prototype.clearAllMarks = function () {
