@@ -36,11 +36,7 @@ overlappingShapesHelper.prototype.detectOverlappingShapes = function () {
 			var firstBounds = this.graph.getCellBounds(first);
 			var secondBounds = this.graph.getCellBounds(second);
 
-			if (
-				firstBounds &&
-				secondBounds &&
-				this._boundsOverlap(firstBounds, secondBounds)
-			) {
+			if (firstBounds && secondBounds && this._boundsOverlap(firstBounds, secondBounds)) {
 				overlapMap[first.mxObjectId].push(second.mxObjectId);
 				overlapMap[second.mxObjectId].push(first.mxObjectId);
 			}
@@ -54,10 +50,7 @@ overlappingShapesHelper.prototype.detectOverlappingShapes = function () {
 			setLinterMessage(
 				value,
 				'overlappingShapes',
-				'Shape ' +
-					value.mxObjectId +
-					' overlaps shape(s): ' +
-					overlappingIds.join(', ')
+				'Shape ' + value.mxObjectId + ' overlaps shape(s): ' + overlappingIds.join(', ')
 			);
 		} else {
 			clearLinterMessage(value, 'overlappingShapes');
