@@ -11,9 +11,18 @@ function detectUnconnectedArrows(ui) {
 			//If there are lacking connections
 			if (value.source === null || value.target === null) {
 				//Property that will be used to display text in the log or on hover
-				value.message = 'Arrow ' + value.mxObjectId + ' lacks at least a connection';
+				var missingEnd =
+					value.source === null && value.target === null
+						? 'a source and a target'
+						: value.source === null
+							? 'a source'
+							: 'a target';
+				setLinterMessage(
+					value,
+					'unconnectedEdges',
+					'Arrow ' + value.mxObjectId + ' is missing ' + missingEnd
+				);
 				// console.log(value.message)
-
 				//Style modification
 				if (value.oldColor === undefined) {
 					//New property to hold the previous non-erroring color
@@ -30,15 +39,12 @@ function detectUnconnectedArrows(ui) {
 
 				//If both connections already exist
 			} else {
+				clearLinterMessage(value, 'unconnectedEdges');
 				//Remove oldColor
 				if (value.oldColor !== undefined) {
 					graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
 					//Remove the unneeded property
 					delete value.oldColor;
-				}
-				//Remove message
-				if (value.message) {
-					delete value.message;
 				}
 			}
 		}
@@ -65,9 +71,7 @@ function revertUnconnectedArrows(ui) {
 			delete value.oldColor;
 		}
 		//Remove message
-		if (value.message) {
-			delete value.message;
-		}
+		clearLinterMessage(value, 'unconnectedEdges');
 	});
 	//detectUnconnectedArrows refreshes after making its changes, so revert
 	// should too , otherwise the restored colors can be left stale on screen

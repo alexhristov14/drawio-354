@@ -3,6 +3,41 @@
 
 var linterHoverHighlight = null;
 
+function setLinterMessage(cell, rule, message) {
+	if (cell.linterMessages == null) {
+		cell.linterMessages = {};
+	}
+
+	cell.linterMessages[rule] = message;
+}
+
+function clearLinterMessage(cell, rule) {
+	if (cell.linterMessages != null) {
+		delete cell.linterMessages[rule];
+
+		if (Object.keys(cell.linterMessages).length === 0) {
+			delete cell.linterMessages;
+		}
+	}
+}
+
+function updateLinterCellStyle(graph, cell) {
+	if (cell.linterMessages != null) {
+		if (cell.linterOriginalStroke == null) {
+			cell.linterOriginalStroke = mxUtils.getValue(
+				graph.getCellStyle(cell),
+				mxConstants.STYLE_STROKECOLOR,
+				'defaultColor'
+			);
+		}
+
+		graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [cell]);
+	} else if (cell.linterOriginalStroke != null) {
+		graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, cell.linterOriginalStroke, [cell]);
+		delete cell.linterOriginalStroke;
+	}
+}
+
 function getLinterHoverHighlight(ui) {
 	if (linterHoverHighlight == null) {
 		// the detectors applied, so hover is visibly distinct, orange border
@@ -52,10 +87,15 @@ function collectLinterMessages(ui) {
 
 	var messages = [];
 	Object.values(graph.model.cells).forEach(function (cell) {
-		if (cell.message) {
-			messages.push(cell);
+		updateLinterCellStyle(graph, cell);
+
+		if (cell.linterMessages != null) {
+			Object.values(cell.linterMessages).forEach(function (message) {
+				messages.push({ cell: cell, message: message });
+			});
 		}
 	});
+	graph.refresh();
 
 	return messages;
 }
@@ -77,13 +117,14 @@ function refreshLinterLog(ui, logContainer) {
 		return;
 	}
 
-	messages.forEach(function (cell) {
+	messages.forEach(function (finding) {
+		var cell = finding.cell;
 		var row = document.createElement('div');
 		row.style.padding = '6px 8px';
 		row.style.borderBottom = '1px solid light-dark(#ddd,#505759)';
 		row.style.cursor = 'pointer';
 		row.style.fontSize = '12px';
-		mxUtils.write(row, cell.message);
+		mxUtils.write(row, finding.message);
 
 		mxEvent.addListener(row, 'mouseenter', function () {
 			row.style.backgroundColor = 'light-dark(#f0f0f0,#3a3a3a)';
@@ -104,4 +145,4 @@ function refreshLinterLog(ui, logContainer) {
 		logContainer.appendChild(row);
 	});
 }
-/* exported refreshLinterLog */
+/* exported clearLinterMessage, refreshLinterLog, setLinterMessage */
