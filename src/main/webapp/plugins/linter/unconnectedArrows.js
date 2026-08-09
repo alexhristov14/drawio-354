@@ -26,9 +26,7 @@ function detectUnconnectedArrows(ui) {
 						null
 					);
 				}
-				graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [
-					value
-				]);
+				graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [value]);
 
 				//If both connections already exist
 			} else {
