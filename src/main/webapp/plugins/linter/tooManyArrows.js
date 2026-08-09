@@ -36,4 +36,18 @@ function detectTooManyArrows(ui) {
 		}
 	});
 }
-/* exported detectTooManyArrows */
+// collectLinterMessages() only calls detectTooManyArrows() while the rule is enabled
+// when the user disables it, nothing was ever un-flagging shapes that were already flagged.
+function revertTooManyArrows(ui) {
+	var graph = ui.editor.graph;
+	var cells = graph.model.cells;
+
+	Object.values(cells).forEach((value) => {
+		if (value.vertex && !value.edge) {
+			clearLinterMessage(value, 'tooManyArrows');
+		}
+	});
+	graph.refresh();
+}
+
+/* exported detectTooManyArrows, revertTooManyArrows */
