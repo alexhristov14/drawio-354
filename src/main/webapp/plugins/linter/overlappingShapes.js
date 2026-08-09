@@ -37,57 +37,34 @@ overlappingShapesHelper.prototype.detectOverlappingShapes = function () {
 				overlapping[vertices[j].mxObjectId] = true;
 
 				//Property used to display text in the log or on hover
-				vertices[i].message =
-					'Shape ' + vertices[i].mxObjectId + ' overlaps ' + vertices[j].mxObjectId;
-				vertices[j].message =
-					'Shape ' + vertices[j].mxObjectId + ' overlaps ' + vertices[i].mxObjectId;
-
-				//Style modification: remember the previous colour once, then turn red
-				this._markRed(vertices[i]);
-				this._markRed(vertices[j]);
+				setLinterMessage(
+					vertices[i],
+					'overlappingShapes',
+					'Shape ' + vertices[i].mxObjectId + ' overlaps ' + vertices[j].mxObjectId
+				);
+				setLinterMessage(
+					vertices[j],
+					'overlappingShapes',
+					'Shape ' + vertices[j].mxObjectId + ' overlaps ' + vertices[i].mxObjectId
+				);
 			}
 		}
 	}
 
 	//Restore any shape that was flagged before but no longer overlaps
 	vertices.forEach(function (value) {
-		if (!overlapping[value.mxObjectId] && value.oldStroke) {
-			this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldStroke, [value]);
-			delete value.oldStroke;
-			delete value.message;
+		if (!overlapping[value.mxObjectId]) {
+			clearLinterMessage(value, 'overlappingShapes');
 		}
 	}, this);
-
-	//Update the graph.
-	this.graph.refresh();
-};
-
-overlappingShapesHelper.prototype._markRed = function (value) {
-	if (!value.oldStroke) {
-		//New property to hold the previous non-erroring color
-		value.oldStroke = mxUtils.getValue(
-			this.graph.getCellStyle(value),
-			mxConstants.STYLE_STROKECOLOR,
-			'defaultColor'
-		);
-	}
-	this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [value]);
 };
 
 overlappingShapesHelper.prototype.clearAllMarks = function () {
 	var vertices = Object.values(this.cells).filter(function (value) {
 		return value.vertex && !value.edge;
 	});
-	var overlapping = {};
 
 	vertices.forEach(function (value) {
-		if (!overlapping[value.mxObjectId] && value.oldStroke) {
-			this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldStroke, [value]);
-			delete value.oldStroke;
-			delete value.message;
-		}
+		clearLinterMessage(value, 'overlappingShapes');
 	}, this);
-
-	//Update the graph.
-	this.graph.refresh();
 };
