@@ -83,6 +83,8 @@ function collectLinterMessages(ui) {
 		userRules.tooManyArrows.enabled !== false
 	) {
 		detectTooManyArrows(ui);
+	} else {
+		revertTooManyArrows(ui);
 	}
 
 	var messages = [];
