@@ -19,36 +19,21 @@ function detectTooManyArrows(ui) {
 
 			//If it exceeds the limit
 			if (edgeCount > maxArrows) {
-				value.message =
+				setLinterMessage(
+					value,
+					'tooManyArrows',
 					'Shape ' +
-					value.mxObjectId +
-					' has ' +
-					edgeCount +
-					' connected arrows (limit is ' +
-					maxArrows +
-					')';
-
-				if (!value.oldColor) {
-					value.oldColor = mxUtils.getValue(
-						this.graph.getCellStyle(value),
-						mxConstants.STYLE_STROKECOLOR,
-						'defaultColor'
-					);
-				}
-				this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'light-dark(#FF0000,#FF0000)', [
-					value
-				]);
+						value.mxObjectId +
+						' has ' +
+						edgeCount +
+						' connected arrows (limit is ' +
+						maxArrows +
+						')'
+				);
 			} else {
-				if (value.oldColor) {
-					this.graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, value.oldColor, [value]);
-					delete value.oldColor;
-				}
-				if (value.message) {
-					delete value.message;
-				}
+				clearLinterMessage(value, 'tooManyArrows');
 			}
 		}
 	});
-	this.graph.refresh();
 }
 /* exported detectTooManyArrows */
